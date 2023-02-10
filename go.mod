@@ -8,9 +8,9 @@ require (
 	github.com/onsi/gomega v1.24.1
 	golang.org/x/time v0.3.0
 	helm.sh/helm/v3 v3.11.0
-	k8s.io/api v0.26.0
-	k8s.io/apimachinery v0.26.0
-	k8s.io/client-go v0.26.0
+	k8s.io/api v0.26.1
+	k8s.io/apimachinery v0.26.1
+	k8s.io/client-go v0.26.1
 	sigs.k8s.io/controller-runtime v0.14.1
 	sigs.k8s.io/yaml v1.3.0
 )
