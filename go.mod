@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/go-logr/logr v1.2.4
 	github.com/onsi/ginkgo/v2 v2.13.0
-	github.com/onsi/gomega v1.28.0
+	github.com/onsi/gomega v1.28.1
 	golang.org/x/time v0.3.0
 	k8s.io/api v0.28.2
 	k8s.io/apimachinery v0.28.2
