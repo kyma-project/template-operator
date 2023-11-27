@@ -25,15 +25,13 @@ uploadFile() {
   fi
 }
 
-echo "PULL_BASE_REF ${PULL_BASE_REF}"
+echo "PULL_BASE_REF= ${PULL_BASE_REF}"
 
-MODULE_VERSION=${PULL_BASE_REF} make render-manifest
-
+MODULE_VERSION=${PULL_BASE_REF} make build-manifests
 echo "Generated template-operator.yaml:"
 cat template-operator.yaml
 
-MODULE_VERSION=${PULL_BASE_REF} make module-build
-
+MODULE_VERSION=${PULL_BASE_REF} make build-module
 echo "Generated moduletemplate.yaml:"
 cat moduletemplate.yaml
 
@@ -62,7 +60,8 @@ fi
 echo "Adding assets to Github release"
 UPLOAD_URL="https://uploads.github.com/repos/kyma-project/template-operator/releases/${RELEASE_ID}/assets"
 
-uploadFile "template-operator.yaml" "${UPLOAD_URL}?name=template-operator.yaml"
-uploadFile "moduletemplate.yaml" "${UPLOAD_URL}?name=moduletemplate.yaml"
-uploadFile "config/samples/default-sample-cr.yaml" "${UPLOAD_URL}?name=default-sample-cr.yaml"
-uploadFile "module-config.yaml" "${UPLOAD_URL}?name=module-config.yaml"
+echo "$UPLOAD_URL"
+#uploadFile "template-operator.yaml" "${UPLOAD_URL}?name=template-operator.yaml"
+#uploadFile "moduletemplate.yaml" "${UPLOAD_URL}?name=moduletemplate.yaml"
+#uploadFile "config/samples/default-sample-cr.yaml" "${UPLOAD_URL}?name=default-sample-cr.yaml"
+#uploadFile "module-config.yaml" "${UPLOAD_URL}?name=module-config.yaml"
