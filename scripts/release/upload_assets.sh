@@ -32,8 +32,8 @@ echo "Generated template-operator.yaml:"
 cat template-operator.yaml
 
 MODULE_VERSION=${PULL_BASE_REF} make build-module
-echo "Generated moduletemplate.yaml:"
-cat moduletemplate.yaml
+echo "Generated module-template.yaml:"
+cat module-template.yaml
 
 echo "Fetching releases"
 CURL_RESPONSE=$(curl -w "%{http_code}" -sL \
@@ -61,7 +61,7 @@ echo "Adding assets to Github release"
 UPLOAD_URL="https://uploads.github.com/repos/kyma-project/template-operator/releases/${RELEASE_ID}/assets"
 
 echo "$UPLOAD_URL"
-#uploadFile "template-operator.yaml" "${UPLOAD_URL}?name=template-operator.yaml"
-#uploadFile "moduletemplate.yaml" "${UPLOAD_URL}?name=moduletemplate.yaml"
-#uploadFile "config/samples/default-sample-cr.yaml" "${UPLOAD_URL}?name=default-sample-cr.yaml"
-#uploadFile "module-config.yaml" "${UPLOAD_URL}?name=module-config.yaml"
+uploadFile "template-operator.yaml" "${UPLOAD_URL}?name=template-operator.yaml"
+uploadFile "module-template.yaml" "${UPLOAD_URL}?name=module-template.yaml"
+uploadFile "config/samples/default-sample-cr.yaml" "${UPLOAD_URL}?name=default-sample-cr.yaml"
+uploadFile "module-config.yaml" "${UPLOAD_URL}?name=module-config.yaml"
