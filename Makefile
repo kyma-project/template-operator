@@ -160,7 +160,7 @@ lint: ## Download & Build & Run golangci-lint against code.
 .PHONY: configure-git-origin
 configure-git-origin:
 	@git remote | grep '^origin$$' -q || \
-		git remote add origin https://github.com/kyma-project/eventing-manager
+		git remote add origin https://github.com/kyma-project/template-operator
 
 #.PHONY: module-config-template
 #module-config-template:
@@ -174,7 +174,7 @@ configure-git-origin:
 build-manifests: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default > template-operator.yaml
 
-DEFAULT_CR ?= $(shell pwd)/config/samples/default.yaml
+DEFAULT_CR ?= $(shell pwd)/config/samples/default-sample-cr.yaml
 .PHONY: build-module
 build-module: kyma build-manifests configure-git-origin ## Build the Module and push it to a registry defined in MODULE_REGISTRY
 	#################################################################
