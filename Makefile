@@ -162,14 +162,6 @@ configure-git-origin:
 	@git remote | grep '^origin$$' -q || \
 		git remote add origin https://github.com/kyma-project/template-operator
 
-#.PHONY: module-config-template
-#module-config-template:
-#	@cat module-config-template.yaml \
-#		| sed -e 's/{{.Channel}}/${MODULE_CHANNEL}/g' \
-#			-e 's/{{.Version}}/$(MODULE_VERSION)/g' \
-#			-e 's/{{.Name}}/kyma-project.io\/module\/$(MODULE_NAME)/g' \
-#				> module-config.yaml
-
 .PHONY: build-manifests
 build-manifests: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default > template-operator.yaml
