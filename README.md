@@ -67,49 +67,48 @@ Compared to [OLM](https://olm.operatorframework.io/), the Kyma modularization di
 While OLM is built heavily around a static dependency expression, Kyma Modules are expected to resolve dependencies dynamically. This means that while in OLM, a module has to declare CRDs and APIs that it depends on. In Kyma, all modules can depend on each other without declaring it in advance.
 This makes it harder to understand compared to a strict dependency graph, but it comes with a few key advantages:
 
-- Concurrent optimisation on controller level: every controller in Kyma is installed simultaneously and is not blocked from installation until other operators are available.
-  This makes it easy to e.g. create or configure resources that do not need to wait for the dependency (e.g. a ConfigMap can be created even before a deployment that has to wait for an API to be present).
-  While this enforces controllers to think about a case where the dependency is not present, we encourage Eventual Consistency and do not enforce a strict lifecycle model on our modules
-- Discoverability is handled not through a registry / server, but through a declarative configuration.
-  Every Module is installed through the `ModuleTemplate`, which is semantically the same as registering an operator in an OLM registry or `CatalogSource`. 
-  The ModuleTemplate however is a normal CR and can be installed into a Control-Plane dynamically and with GitOps practices. 
-  This allows multiple control-planes to offer differing modules simply at configuration time.
-  Also, we do not use File-Based Catalogs for maintaining our catalog, but maintain every `ModuleTemplate` through [Open Component Model](https://ocm.software/), an open standard to describe software artifact delivery.
+- Concurrent optimization on the controller level: every controller in Kyma is installed simultaneously and is not blocked from installation until other operators are available.
+This makes it easy to, for example, create or configure resources that do not need to wait for the dependency (for example, ConfigMap can be created even before a deployment that has to wait for an API to be present).
+While this forces controllers to consider a case where the dependency is absent, we encourage eventual consistency and do not enforce a strict lifecycle model on the modules.
+- Discoverability is handled not through a registry or server but through a declarative configuration.
+Every Module is installed through `ModuleTemplate`, which is semantically the same as registering an operator in an OLM registry or `CatalogSource`. 
+`ModuleTemplate` however is a normal CR and can be installed on Control Plane. 
+This allows multiple Control Planes to offer differing modules simply at configuration time.
+Also, we do not use file-based catalogs to maintain our catalog but maintain every `ModuleTemplate` through [Open Component Model](https://ocm.software/), an open standard to describe software artifact delivery.
 
-Regarding release channels for operators, Lifecycle Manager operates at the same level as OLM. However, with `Kyma` we ensure bundling of the `ModuleTemplate` to a specific release channel.
-We are heavily inspired by the way that OLM handles release channels, but we do not have an intermediary `Subscription` that assigns the catalog to the channel. Instead, every module is deliverd in a `ModuleTemplate` in a channel already.
+Regarding release channels for operators, Lifecycle Manager operates at the same level as OLM. However, with `Kyma`, we ensure the bundling of `ModuleTemplate` to a specific release channel.
+We are heavily inspired by the way that OLM handles release channels, but we do not have an intermediary `Subscription` that assigns the catalog to the channel. Instead, every module is already delivered in `ModuleTemplate` in a channel.
 
-There is a distinct difference in parts of the `ModuleTemplate`. 
-The ModuleTemplate contains not only a specification of the operator to be installed through a dedicated Layer.
-It also consists of a set of default values for a given channel when installed for the first time.
-When installing an operator from scratch through Kyma, this means that the Module will already be initialized with a default set of values.
-However, when upgrading it is not expected from the Kyma Lifecycle to update the values to eventual new defaults. Instead it is a way for module developers to prefill their Operator with instructions based on a given environment (the channel).
-It is important to note that these default values are static once they are installed, and they will not be updated unless a new installation of the module occurs, even when the content of `ModuleTemplate` changes. 
-This is because a customer is expected to be able to change the settings of the module CustomResource at any time without the Kyma ecosystem overriding it.
-Thus, the CustomResource of a Module can also be treated as a customer/runtime-facing API that allows us to offer typed configuration for multiple parts of Kyma.
+There is a distinct difference in the `ModuleTemplate` parts. 
+`ModuleTemplate` contains not only a specification of the operator to be installed through a dedicated Layer but it also a set of default values for a given channel when installed for the first time.
+When installing an operator from scratch through Kyma, the module will already be initialized with a default set of values.
+However, when upgrading, Lifecycle Manager is not expected to update the values to new defaults. Instead, it is a way for module developers to prefill their Operators with instructions based on a given environment (the channel).
+Note that these default values are static once installed, and they are not be updated unless a new module installation occurs, even when the content of `ModuleTemplate` changes. 
+This is because a customer is expected to be able to change the settings of the module CR at any time without the Kyma ecosystem overriding it.
+Thus, the module CR can also be treated as a customer or runtime-facing API that allows us to offer typed configuration for multiple parts of Kyma.
 
 ### Crossplane
 
-With [Crossplane](https://crossplane.io/), you are fundamentally allowing Providers to interact in your control-plane.
-When looking at the Crossplane Lifecycle, the most similar aspect is that we also use opinionated OCI Images to bundle our Modules. 
-We use the `ModuleTemplate` to reference our layers containing the necessary metadata to deploy our controllers, just like Crossplane.
-However, we do not opinionate on Permissions of controllers and enforce stricter versioning guarantees, only allowing `semver` to be used for modules, and `Digest` for `sha` digests for individual layers of modules.
+With [Crossplane](https://crossplane.io/), you are fundamentally allowing providers to interact with your Control Plance.
+The most similar aspect of the Crossplane lifecycle is that we also use opinionated OCI Images to bundle our modules. 
+We use `ModuleTemplate` to reference our layers containing the necessary metadata to deploy our controllers, just like Crossplane.
+However, we do not speculate on the permissions of controllers and enforce stricter versioning guarantees, only allowing `semver` to be used for modules and `Digest` for the `sha` digests for individual layers of modules.
 
 Fundamentally different is also the way that `Providers` and `Composite Resources` work compared to the Kyma ecosystem.
-While Kyma allows any module to bring an individual CustomResource into the cluster for configuration, a `Provider` in Crossplane is located in the control-plane and only directs installation targets.
-We handle this kind of data centrally through acquisition-strategies for credentials and other centrally managed data in the `Kyma` Custom Resource. 
-Thus, it is most fitting, to consider the Kyma eco-system as a heavily opinionated `Composite Resource` from Crossplane, with the `Managed Resource` being tracked with the Lifecycle Manager `Manifest`. 
+While Kyma allows any module to bring an individual CR into the cluster for configuration, a `Provider` in Crossplane is located in Control Plane and only directs installation targets.
+We handle this kind of data centrally through acquisition strategies for credentials and other centrally managed data in the `Kyma` CR. 
+Thus, it is most fitting to consider the Kyma ecosystem as a heavily opinionated `Composite Resource` from Crossplane, with the `Managed Resource` being tracked with the Lifecycle Manager `Manifest`. 
 
-Compared to Crossplane, we also encourage the creation of own CustomResourceDefinitions in place of the concept of the `Managed Resource`, and in the case of configuration, we are able to synchronize not only a desired state for all modules from the control-plane, but also from the runtime.
+Compared to Crossplane, we also encourage the creation of our CRDs in place of the concept of the `Managed Resource`, and in the case of configuration, we can synchronize not only a desired state for all modules from Control Plance but also from the runtime.
 Similarly, we make the runtime module catalog discoverable from inside the runtime with a dedicated synchronization mechanism.
 
-Lastly, compared to Crossplane, we do not have as many choices when it comes to revision management and dependency resolution.
-While in Crossplane, it is possible to define custom Package, Revision and Dependency Policies. 
-However, in Kyma we opinionated here, since managed use-cases usually require unified revision handling, and we do not target a generic solution for revision management of different module eco-systems.
+Lastly, compared to Crossplane, we have fewer choices regarding revision management and dependency resolution.
+While in Crossplane, it is possible to define custom package, revision, and dependency policies. 
+However, in Kyma, managed use cases usually require unified revision handling, and we do not target a generic solution for revision management of different module ecosystems.
 
 ## Implementation
 
-### Pre-requisites
+### Prerequisites
 
 * A provisioned Kubernetes Cluster and OCI Registry
 
