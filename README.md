@@ -1,63 +1,71 @@
 [![REUSE status](https://api.reuse.software/badge/github.com/kyma-project/template-operator)](https://api.reuse.software/info/github.com/kyma-project/template-operator)
 
 # Template Operator
-This documentation and template serves as a reference to implement a module (component) operator, for integration with the [lifecycle-manager](https://github.com/kyma-project/lifecycle-manager/tree/main/).
-It utilizes the [kubebuilder](https://book.kubebuilder.io/) framework with some modifications to implement Kubernetes APIs for custom resource definitions (CRDs).
+This documentation and template serve as a reference to implement a module operator for integration with [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager/tree/main/).
+It utilizes the [kubebuilder](https://book.kubebuilder.io/) framework with some modifications to implement Kubernetes APIs for Custom Resource Definitions (CRDs).
 Additionally, it hides Kubernetes boilerplate code to develop fast and efficient control loops in Go.
 
 
 ## Contents
-* [Understanding module development in Kyma](#understanding-module-development-in-kyma)
-* [Implementation](#implementation)
-  * [Pre-requisites](#pre-requisites)
-  * [Generate kubebuilder operator](#generate-kubebuilder-operator)
-  * [Local testing](#local-testing)
-* [Bundling and installation](#bundling-and-installation)
-  * [Grafana dashboard for simplified Controller Observability](#grafana-dashboard-for-simplified-controller-observability)
-  * [RBAC](#rbac)
-  * [Build module operator image](#prepare-and-build-module-operator-image)
-  * [Build and push your module to the registry](#build-and-push-your-module-to-the-registry)
-* [Using your module in the Lifecycle Manager ecosystem](#using-your-module-in-the-lifecycle-manager-ecosystem)
-  * [Deploying Kyma infrastructure operators with `kyma alpha deploy`](#deploying-kyma-infrastructure-operators-with-kyma-alpha-deploy)
-  * [Deploying a `ModuleTemplate` into the Control Plane](#deploying-a-moduletemplate-into-the-control-plane)
-  * [Debugging the operator ecosystem](#debugging-the-operator-ecosystem)
-  * [Registering your module within the Control Plane](#registering-your-module-within-the-control-plane)
+- [Template Operator](#template-operator)
+  - [Contents](#contents)
+  - [Understanding module development in Kyma](#understanding-module-development-in-kyma)
+    - [Comparison to other established Frameworks](#comparison-to-other-established-frameworks)
+      - [Operator Lifecycle Manager (OLM)](#operator-lifecycle-manager-olm)
+    - [Crossplane](#crossplane)
+  - [Implementation](#implementation)
+    - [Pre-requisites](#pre-requisites)
+    - [Generate kubebuilder operator](#generate-kubebuilder-operator)
+      - [Optional: Adjust default config resources](#optional-adjust-default-config-resources)
+      - [Steps API definition](#steps-api-definition)
+      - [Steps controller implementation](#steps-controller-implementation)
+    - [Local testing](#local-testing)
+  - [Bundling and installation](#bundling-and-installation)
+    - [Grafana dashboard for simplified Controller Observability](#grafana-dashboard-for-simplified-controller-observability)
+    - [RBAC](#rbac)
+    - [Prepare and build module operator image](#prepare-and-build-module-operator-image)
+    - [Build and push your module to the registry](#build-and-push-your-module-to-the-registry)
+  - [Using your module in the Lifecycle Manager ecosystem](#using-your-module-in-the-lifecycle-manager-ecosystem)
+    - [Deploying Kyma infrastructure operators with `kyma alpha deploy`](#deploying-kyma-infrastructure-operators-with-kyma-alpha-deploy)
+    - [Deploying a `ModuleTemplate` into the Control Plane](#deploying-a-moduletemplate-into-the-control-plane)
+    - [Debugging the operator ecosystem](#debugging-the-operator-ecosystem)
+    - [Registering your module within the Control Plane](#registering-your-module-within-the-control-plane)
 
-## Understanding module development in Kyma 
+## Understanding Module Development in Kyma 
 
 Before going in-depth, make sure you are familiar with:
 
 - [Modularization in Kyma](https://github.com/kyma-project/community/tree/main/concepts/modularization)
 - [Operator Pattern in Kubernetes](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)
 
-This Guide serves as comprehensive Step-By-Step tutorial on how to properly create a module from scratch by using an operator that is installing k8s yaml resources. 
-Note that while other approaches are encouraged, there is no dedicated guide available yet and these will follow with sufficient requests and adoption of Kyma modularization.
+This Guide serves as a comprehensive step-by-step tutorial on how to properly create a module from scratch by using the operator that installs the Kubernetes YAML resources. 
+> **NOTE:** While other approaches are encouraged, there are no dedicated guides available yet. These will follow with sufficient requests and the adoption of Kyma modularization.
 
-Every Kyma Module using an Operator follows 5 basic Principles:
+### Basic Principles
+Every Kyma module using the operator follows five basic principles:
 
-- Declared as available for use in a release channel through the `ModuleTemplate` Custom Resource in the control-plane
-- Declared as desired state within the `Kyma` Custom Resource in runtime or control-plane
-- Installed / managed in the runtime by [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager) through a `Manifest` custom resource in the control-plane
-- Owns at least 1 Custom Resource Definition that defines the contract towards a Runtime Administrator and configures its behaviour
-- Is operating on at most 1 runtime at every given time
+- Is declared as available for use in a release channel through the `ModuleTemplate` custom resource (CR) in Control Plane
+- Is declared as the desired state within the `Kyma` CR in runtime or Control Plane
+- Is installed or managed in the runtime by [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager) through the `Manifest` CR in Control Plane
+- Owns at least one CRD that defines the contract towards a Runtime Administrator and configures its behavior
+- Operates on at most one runtime at any given time
 
-Release channels let customers try new modules and features early, and decide when the updates should be applied. For more info, see the [release channels documentation in our Modularization overview](https://github.com/kyma-project/community/tree/main/concepts/modularization#release-channels).
+### Release Channels
+Release channels let customers try new modules and features early and decide when the updates should be applied. For more info, see the [release channels documentation in our Modularization overview](https://github.com/kyma-project/community/tree/main/concepts/modularization#release-channels).
 
-The channel name has the following rules:
+The following rules apply to the channels:
 1. Lower case letters from a to z.
 2. The total length is between 3 and 32.
 
-In case you are planning to migrate a pre-existing module within Kyma, please familiarize yourself with the [transition plan for existing modules](https://github.com/kyma-project/community/blob/main/concepts/modularization/transition.md)
+If you are planning to migrate a pre-existing module within Kyma, read the [transition plan for existing modules](https://github.com/kyma-project/community/blob/main/concepts/modularization/transition.md).
 
-### Comparison to other established Frameworks
+### Comparison to Other Established Frameworks
 
 #### Operator Lifecycle Manager (OLM)
 
-Compared to [OLM](https://olm.operatorframework.io/), the Kyma Modularization is similar, but distinct in a few key aspects.
-While OLM is built heavily around a static dependency expression, Kyma Modules are expected to resolve dependencies dynamically.
-
-Concretely, this means that while in OLM a Module has to declare CRDs and APIs that it depends on, in Kyma, all modules have the ability to depend on each other without declaring it in advance.
-This makes it of course harder to understand compared to a strict dependency graph, but it comes with a few key advantages:
+Compared to [OLM](https://olm.operatorframework.io/), the Kyma modularization differs in a few aspects.
+While OLM is built heavily around a static dependency expression, Kyma Modules are expected to resolve dependencies dynamically. This means that while in OLM, a module has to declare CRDs and APIs that it depends on. In Kyma, all modules can depend on each other without declaring it in advance.
+This makes it harder to understand compared to a strict dependency graph, but it comes with a few key advantages:
 
 - Concurrent optimisation on controller level: every controller in Kyma is installed simultaneously and is not blocked from installation until other operators are available.
   This makes it easy to e.g. create or configure resources that do not need to wait for the dependency (e.g. a ConfigMap can be created even before a deployment that has to wait for an API to be present).
