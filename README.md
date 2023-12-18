@@ -110,77 +110,80 @@ However, in Kyma, managed use cases usually require unified revision handling, a
 
 ### Prerequisites
 
-* A provisioned Kubernetes Cluster and OCI Registry
-
-  _WARNING: For all use cases in the guide, you will need a cluster for end-to-end testing outside your [envtest](https://book.kubebuilder.io/reference/envtest.html) integration test suite.
+  **WARNING:** For all use cases in the guide, you will need a cluster for end-to-end testing outside your [envtest](https://book.kubebuilder.io/reference/envtest.html) integration test suite.
   This guide is HIGHLY RECOMMENDED to be followed for a smooth development process.
-  This is a good alternative if you do not want to use an entire control-plane infrastructure and still want to properly test your operators.__
+  This is a good alternative if you do not want to use an entire control-plane infrastructure and still want to test your operators properly.
+
+* A provisioned Kubernetes Cluster and OCI Registry
 * [kubectl](https://kubernetes.io/docs/tasks/tools/)
 * [kubebuilder](https://book.kubebuilder.io/)
+
+Use one of the following options to install kubebuilder:
+
+<!-- tabs:start -->
+#### **Brew**
     ```bash
-    # you could use one of the following options
-    
-    # option 1: using brew
     brew install kubebuilder
-    
-    # option 2: fetch sources directly
+    ```
+#### **Fetch sources directly**
+    ```bash
     curl -L -o kubebuilder https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH)
     chmod +x kubebuilder && mv kubebuilder /usr/local/bin/
     ```
-* [kyma CLI](https://storage.googleapis.com/kyma-cli-stable/kyma-darwin)
+<!-- tabs:end -->
+* [Kyma CLI](https://storage.googleapis.com/kyma-cli-stable/kyma-darwin)
 * An OCI Registry to host OCI Image
-  * Follow our [Provision cluster and OCI registry](https://github.com/kyma-project/lifecycle-manager/blob/main/docs/developer-tutorials/provision-cluster-and-registry.md) guide to create a local registry provided by k3d
-  * Or using [Google Container Registry (GCR)](https://github.com/kyma-project/lifecycle-manager/blob/main/docs/developer-tutorials/prepare-gcr-registry.md) guide for a remote registry.
+  * Follow our [Provision cluster and OCI registry](https://github.com/kyma-project/lifecycle-manager/blob/main/docs/developer-tutorials/provision-cluster-and-registry.md) guide to create a local registry provided by k3d or use the [Google Container Registry (GCR)](https://github.com/kyma-project/lifecycle-manager/blob/main/docs/developer-tutorials/prepare-gcr-registry.md) guide for a remote registry.
+
 ### Generate kubebuilder operator
 
-1. Initialize `kubebuilder` project. Please make sure domain is set to `kyma-project.io`, the following command should execute in `test-operator` folder.
+1. Initialize the `kubebuilder` project. Make sure the domain is set to `kyma-project.io`. Execute the following command in the `test-operator` folder.
     ```shell
     kubebuilder init --domain kyma-project.io --repo github.com/kyma-project/test-operator --project-name=test-operator --plugins=go/v4-alpha
     ```
 
-2. Create API group version and kind for the intended custom resource(s). Please make sure the `group` is set as `operator`.
+2. Create the API group version and kind for the intended CR(s). Please make sure the `group` is set to `operator`.
     ```shell
     kubebuilder create api --group operator --version v1alpha1 --kind Sample --resource --controller --make
     ```
 
-3. Run `make manifests`, to generate CRDs respectively.
+3. Run `make manifests` to generate respective CRDs.
 
-A basic kubebuilder operator with appropriate scaffolding should be setup.
+Set up a basic kubebuilder operator with appropriate scaffolding.
 
-#### Optional: Adjust default config resources
-If the module operator will be deployed under same namespace with other operators, differentiate your resources by adding common labels.
+#### Optional: Adjust the default config resources
+If the module operator is deployed under same namespace with other operators, differentiate your resources by adding common labels.
 
 1. Add `commonLabels` to default `kustomization.yaml`, [reference implementation](config/default/kustomization.yaml).
 
-2. Include all resources (e.g: [manager.yaml](config/manager/manager.yaml)) which contain label selectors by using `commonLabels`.
+2. Include all resources (for example, [manager.yaml](config/manager/manager.yaml)) that contain label selectors by using `commonLabels`.
 
 Further reading: [Kustomize built-in commonLabels](https://github.com/kubernetes-sigs/kustomize/blob/master/api/internal/konfig/builtinpluginconsts/commonlabels.go)
 
-#### Steps API definition
+#### API Ddefinition Steps
 
-1. Refer to [State requirements](api/v1alpha1/status.go) and include them in your `Status` sub-resource similarly.
+1. Refer to [State requirements](api/v1alpha1/status.go) and similarly include them in your `Status` sub-resource.
 
-   This `Status` sub-resource should contain all valid `State` values (`.status.state`) values in order to be compliant with the Kyma ecosystem.
-    ```go
-    package v1alpha1
-    // Status defines the observed state of Module CR.
-    type Status struct {
-        // State signifies current state of Module CR.
-        // Value can be one of ("Ready", "Processing", "Error", "Deleting").
-        // +kubebuilder:validation:Required
-        // +kubebuilder:validation:Enum=Processing;Deleting;Ready;Error
-        State State `json:"state"`
-    }
-    ```
+This `Status` sub-resource must contain all valid `State` (`.status.state`) values to be compliant with the Kyma ecosystem.
 
-    Include the `State` values in your `Status` sub-resource, either through inline reference or direct inclusion. These values have literal meaning behind them, so use them appropriately.
+   ```go
+   package v1alpha1
+   // Status defines the observed state of Module CR.
+   type Status struct {
+       // State signifies current state of Module CR.
+       // Value can be one of ("Ready", "Processing", "Error", "Deleting").
+       // +kubebuilder:validation:Required
+       // +kubebuilder:validation:Enum=Processing;Deleting;Ready;Error
+       State State `json:"state"`
+   }
+   ```
 
-2. Optionally, you can add additional fields to your `Status` sub-resource. 
-3. For instance, `Conditions` are added to `SampleCR` in the [API definition](api/v1alpha1/sample_types.go).
+Include the `State` values in your `Status` sub-resource, either through inline reference or direct inclusion. These values have literal meaning behind them, so use them appropriately.
+
+1. Optionally, you can add additional fields to your `Status` sub-resource. 
+2. For instance, `Conditions` are added to `SampleCR` in the [API definition](api/v1alpha1/sample_types.go).
 This also includes the required `State` values, using an inline reference.
-
-    <details>
-    <summary><b>Reference implementation SampleCR</b></summary>
+See the following SampleCR reference implementation.
     
     ```go
     package v1alpha1
@@ -203,52 +206,51 @@ This also includes the required `State` values, using an inline reference.
         // add other fields to status subresource here
     }
     ```
-    </details>
 
-4. Run `make generate manifests`, to generate boilerplate code and manifests.
+3. Run `make generate manifests`, to generate boilerplate code and manifests.
 
-#### Steps controller implementation
+#### Controller Implementation Steps
 
-_Warning_: This sample implementation is only for reference. You could copy parts of implementation but please do not add this repository as a dependency to your project.
+**Warning**: This sample implementation is only for reference. You can copy parts of it but do not add this repository as a dependency to your project.
 
-1. Implement `State` handling to represent the corresponding state of the reconciled resource, by following [kubebuilder](https://book.kubebuilder.io/) guidelines to implement controllers.
+1. Implement `State` handling to represent the corresponding state of the reconciled resource by following [kubebuilder](https://book.kubebuilder.io/) guidelines on how to implement controllers.
 
-2. You could refer either to `SampleCR` [controller implementation](controllers/sample_controller_rendered_resources.go) for setting appropriate `State` and `Conditions` values to your `Status` sub-resource.
+2. Refer to `SampleCR` [controller implementation](controllers/sample_controller_rendered_resources.go) for setting the appropriate `State` and `Conditions` values to your `Status` sub-resource.
 
-    `SampleCR` is reconciled to install / uninstall a list of rendered resources from a YAML file on the file system.
+`SampleCR` is reconciled to install or uninstall a list of rendered resources from a YAML file on the file system.
     
-    ````go   
-    r.setStatusForObjectInstance(ctx, objectInstance, status.
-    WithState(v1alpha1.StateReady).
-    WithInstallConditionStatus(metav1.ConditionTrue, objectInstance.GetGeneration()))
-    ````
+   ```go   
+   r.setStatusForObjectInstance(ctx, objectInstance, status.
+   WithState(v1alpha1.StateReady).
+   WithInstallConditionStatus(metav1.ConditionTrue, objectInstance.GetGeneration()))
+   ```
     
-3. The reference controller implementations listed above use [Server-side apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) instead of conventional methods to process resources on the target cluster.
-    Parts of this logic could be leveraged to implement your own controller logic. Checkout functions inside these controllers for state management and other implementation details.
+3. The reference controller implementations listed above use [Server-Side Apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) instead of conventional methods to process resources on the target cluster.
+Parts of this logic can be leveraged to implement your own controller logic. Check out functions inside these controllers for state management and other implementation details.
 
-### Local testing
+### Local Testing
 * Connect to your cluster and ensure `kubectl` is pointing to the desired cluster.
 * Install CRDs with `make install`
-  _WARNING: This installs a CRD on your cluster, so create your cluster before running the `install` command. See [Pre-requisites](#pre-requisites) for details on the cluster setup._
+  **WARNING:** This installs a CRD on your cluster, so create your cluster before running the `install` command. See [Prerequisites](#pre-requisites) for details on the cluster setup.
 * _Local setup_: install your module CR on a cluster and execute `make run` to start your operator locally.
 
-_WARNING: Note that while `make run` fully runs your controller against the cluster, it is not feasible to compare it to a productive operator.
-This is mainly because it runs with a client configured with privileges derived from your `KUBECONFIG` environment variable. For in-cluster configuration, see our [Guide on RBAC Management](#rbac)._
+**WARNING:** Note that while `make run` fully runs your controller against the cluster, it is not feasible to compare it to a productive operator.
+This is mainly because it runs with a client configured with privileges derived from your `KUBECONFIG` environment variable. For in-cluster configuration, see [Guide on RBAC Management](#rbac).
 
-## Bundling and installation
+## Bundling and Installation
 
-### Grafana dashboard for simplified Controller Observability
+### Grafana Dashboard for Simplified Controller Observability
 
-You can extend the operator further by using automated dashboard generation for grafana.
+You can extend the operator further by using automated dashboard generation for Grafana.
 
-By the following command, two grafana dashboard files with controller related metrics will be generated under `/grafana` folder.
+Use the following command to generate two grafana dashboard files with controller related metrics in the `/grafana` folder:
 
 ```shell
 kubebuilder edit --plugins grafana.kubebuilder.io/v1-alpha
 ```
 
-To import the grafana dashboard, please read [official grafana guide](https://grafana.com/docs/grafana/latest/dashboards/export-import/#import-dashboard).
-This feature is supported by [kubebuilder grafana plugin](https://book.kubebuilder.io/plugins/grafana-v1-alpha.html).
+To import the Grafana dashboard, read the [official Grafana guide](https://grafana.com/docs/grafana/latest/dashboards/export-import/#import-dashboard).
+This feature is supported by the [kubebuilder grafana plugin](https://book.kubebuilder.io/plugins/grafana-v1-alpha.html).
 
 ### RBAC
 Make sure you have appropriate authorizations assigned to you controller binary, before you run it inside a cluster (not locally with `make run`).
