@@ -250,28 +250,28 @@ kubebuilder edit --plugins grafana.kubebuilder.io/v1-alpha
 ```
 
 To import the Grafana dashboard, read the [official Grafana guide](https://grafana.com/docs/grafana/latest/dashboards/export-import/#import-dashboard).
-This feature is supported by the [kubebuilder grafana plugin](https://book.kubebuilder.io/plugins/grafana-v1-alpha.html).
+This feature is supported by the [kubebuilder Grafana plugin](https://book.kubebuilder.io/plugins/grafana-v1-alpha.html).
 
-### RBAC
-Make sure you have appropriate authorizations assigned to you controller binary, before you run it inside a cluster (not locally with `make run`).
-The Sample CR [controller implementation](controllers/sample_controller_rendered_resources.go) includes rbac generation (via kubebuilder) for all resources across all API groups.
+### Role-Based Access Control (RBAC)
+Ensure you have appropriate authorizations assigned to your controller binary before running it inside a cluster (not locally with `make run`).
+The Sample CR [controller implementation](controllers/sample_controller_rendered_resources.go) includes RBAC generation (via kubebuilder) for all resources across all API groups.
 This should be adjusted according to the chart manifest resources and reconciliation types.
 
-Towards the earlier stages of your operator development RBACs could simply accommodate all resource types and adjusted later, as per your requirements.
+Towards the earlier stages of your operator development, RBACs can accommodate all resource types and adjust them later per your requirements.
 
-```go
-package controllers
-// TODO: dynamically create RBACs! Remove line below.
-//+kubebuilder:rbac:groups="*",resources="*",verbs="*"
-```
+   ```go
+   package controllers
+   // TODO: dynamically create RBACs! Remove line below.
+   //+kubebuilder:rbac:groups="*",resources="*",verbs="*"
+   ```
 
-_WARNING: Do not forget to run `make manifests` after this adjustment for it to take effect!_
+**REMEMBER:** Run `make manifests` after this adjustment for it to take effect.
 
-### Prepare and build module operator image
+### Prepare and Build Module Operator Image
 
-_WARNING: This step requires the working OCI Registry from our [Pre-requisites](#pre-requisites)_
+**WARNING:** This step requires the working OCI Registry. See [Prerequisites](#pre-requisites).
 
-1. Include the static module data in your _Dockerfile_:
+1. Include the static module data in your Dockerfile:
     ```dockerfile
     FROM gcr.io/distroless/static:nonroot
     WORKDIR /
@@ -282,32 +282,32 @@ _WARNING: This step requires the working OCI Registry from our [Pre-requisites](
     ENTRYPOINT ["/manager"]
     ``` 
 
-    The sample module data in this repository includes a YAML manifest in `module-data/yaml` directories.
-    You reference the YAML manifest directory with `spec.resourceFilePath` attribute of the `Sample` CR.
-    The example custom resources in the `config/samples` directory are already referencing the mentioned directories.
-    Feel free to organize the static data in a different way, the included `module-data` directory serves just as an example.
-    You may also decide to not include any static data at all - in that case you have to provide the controller with the YAML data at runtime using other techniques, for example Kubernetes volume mounting.
+The sample module data in this repository includes a YAML manifest in the `module-data/yaml` directories.
+Reference the YAML manifest directory with the `spec.resourceFilePath` attribute of the `Sample` CR.
+The example CRs in the `config/samples` directory already reference the mentioned directories.
+Feel free to organize the static data differently. The included `module-data` directory serves just as an example.
+You may also decide not to include any static data at all. In that case, you must provide the controller with the YAML data at runtime using other techniques, such as Kubernetes volume mounting.
 
-2. Build and push your module operator binary by adjusting `IMG` if necessary and running the inbuilt kubebuilder commands.
-   Assuming your operator image has the following base settings:
-   * hosted at `op-kcp-registry.localhost:8888/unsigned/operator-images` 
-   * controller image name is `sample-operator`
-   * controller image has version `0.0.1`
+2. Build and push your module operator binary by adjusting `IMG`, if necessary, and running the inbuilt kubebuilder commands.
+Assuming your operator image has the following base settings:
+* is hosted at `op-kcp-registry.localhost:8888/unsigned/operator-images` 
+* controller image name is `sample-operator`
+* controller image has version `0.0.1`
 
-   You can run the following command
-    ```sh
-    make docker-build docker-push IMG="op-kcp-registry.localhost:8888/unsigned/operator-images/sample-operator:0.0.1"
-    ```
+You can run the following command
+   ```sh
+   make docker-build docker-push IMG="op-kcp-registry.localhost:8888/unsigned/operator-images/sample-operator:0.0.1"
+   ```
    
-This will build the controller image and then push it as the image defined in `IMG` based on the kubebuilder targets.
+This builds the controller image and then pushes it as the image defined in `IMG` based on the kubebuilder targets.
 
-### Build and push your module to the registry
+### Build and Push Your Module to the Registry
 
-_WARNING: This step requires the working OCI Registry, Cluster and Kyma CLI from our [Pre-requisites](#pre-requisites)_
+**WARNING:** This step requires the working OCI Registry, cluster and Kyma CLI. See [Prerequisites](#pre-requisites).
 
 1. **Prerequisites**
    
-   Generate the CRDs and resources for the module from the `default` kustomization into a manifest file using the following command:
+Generate the CRDs and resources for the module from the `default` kustomization into a manifest file using the following command:
    ```shell
    make build-manifests
    ```
