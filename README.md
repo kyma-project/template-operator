@@ -124,7 +124,7 @@ While in Crossplane, it is possible to define custom package, revision, and depe
 Use one of the following options to install kubebuilder:
 
 <!-- tabs:start -->
-#### **Brew**
+#### **Homebrew**
     ```bash
     brew install kubebuilder
     ```
