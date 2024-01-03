@@ -17,8 +17,6 @@ Additionally, it hides Kubernetes boilerplate code to develop fast and efficient
     - [Crossplane](#crossplane)
   - [Implementation](#implementation)
     - [Prerequisites](#prerequisites)
-      - [**Brew**](#brew)
-      - [**Fetch sources directly**](#fetch-sources-directly)
     - [Generate kubebuilder operator](#generate-kubebuilder-operator)
       - [Optional: Adjust the default config resources](#optional-adjust-the-default-config-resources)
       - [API Ddefinition Steps](#api-ddefinition-steps)
@@ -31,7 +29,7 @@ Additionally, it hides Kubernetes boilerplate code to develop fast and efficient
     - [Build and Push Your Module to the Registry](#build-and-push-your-module-to-the-registry)
   - [Using Your Module in the Lifecycle Manager Ecosystem](#using-your-module-in-the-lifecycle-manager-ecosystem)
     - [Deploying Kyma Infrastructure Operators with `kyma alpha deploy`](#deploying-kyma-infrastructure-operators-with-kyma-alpha-deploy)
-    - [Deploying `ModuleTemplate` into the Control Plane](#deploying-moduletemplate-into-the-control-plane)
+    - [Deploying ModuleTemplate into the Control Plane](#deploying-moduletemplate-into-the-control-plane)
     - [Debugging the Operator Ecosystem](#debugging-the-operator-ecosystem)
     - [Registering your Module Within the Control Plane](#registering-your-module-within-the-control-plane)
 
@@ -48,9 +46,9 @@ This guide serves as a comprehensive step-by-step tutorial on properly creating 
 ### Basic Principles
 Every Kyma module using the operator follows five basic principles:
 
-- Is declared as available for use in a release channel through the `ModuleTemplate` custom resource (CR) in Control Plane
-- Is declared as the desired state within the `Kyma` CR in the runtime or Control Plane
-- Is installed or managed in the runtime by [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager) through the `Manifest` CR in Control Plane
+- Is declared as available for use in a release channel through the ModuleTemplate custom resource (CR) in Control Plane
+- Is declared as the desired state within the Kyma CR in the runtime or Control Plane
+- Is installed or managed in the runtime by [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager) through the Manifest CR in Control Plane
 - Owns at least one CRD that defines the contract towards a runtime administrator and configures its behavior
 - Operates on at most one runtime at any given time
 
@@ -75,19 +73,19 @@ This makes it harder to understand compared to a strict dependency graph, but it
 This makes it easy to create or configure resources that do not need to wait for the dependency. For example, ConfigMap can be created even before a Deployment that must wait for an API to be present.
 While this forces controllers to include a case where the dependency is absent, we encourage eventual consistency and do not enforce a strict lifecycle model on the modules.
 - Discoverability is handled not through a registry or server but through a declarative configuration.
-Every module is installed through `ModuleTemplate`, which is semantically the same as registering an operator in an OLM registry or `CatalogSource`. 
-`ModuleTemplate`, however, is a normal CR and can be installed on Control Plane. 
+Every module is installed through ModuleTemplate, which is semantically the same as registering an operator in an OLM registry or `CatalogSource`. 
+ModuleTemplate, however, is a normal CR and can be installed on Control Plane. 
 This allows multiple Control Planes to offer differing modules simply at configuration time.
-Also, we do not use file-based catalogs to maintain our catalog but maintain every `ModuleTemplate` through [Open Component Model](https://ocm.software/), an open standard to describe software artifact delivery.
+Also, we do not use file-based catalogs to maintain our catalog but maintain every ModuleTemplate through [Open Component Model](https://ocm.software/), an open standard to describe software artifact delivery.
 
-Regarding release channels for operators, Lifecycle Manager operates at the same level as OLM. However, with `Kyma`, we ensure the bundling of `ModuleTemplate` to a specific release channel.
-We are heavily inspired by the way that OLM handles release channels, but we do not have an intermediary `Subscription` that assigns the catalog to the channel. Instead, every module is already delivered in `ModuleTemplate` in a channel.
+Regarding release channels for operators, Lifecycle Manager operates at the same level as OLM. However, with Kyma, we ensure the bundling of ModuleTemplate to a specific release channel.
+We are heavily inspired by the way that OLM handles release channels, but we do not use an intermediary Subscription that assigns the catalog to the channel. Instead, every module is already delivered in ModuleTemplate in a channel's ModuleTemplate.
 
-There is a distinct difference in the `ModuleTemplate` parts. 
-`ModuleTemplate` contains not only a specification of the operator to be installed through a dedicated layer. It also consists of a set of default values for a given channel when installed for the first time.
+There is a distinct difference in the ModuleTemplate parts. 
+ModuleTemplate contains not only a specification of the operator to be installed through a dedicated layer. It also consists of a set of default values for a given channel when installed for the first time.
 When you install an operator from scratch using Kyma, the module is already initialized with a default set of values.
 However, when upgrading, Lifecycle Manager is not expected to update the values to new defaults. Instead, it is a way for module developers to prefill their operators with instructions based on a given environment (the channel).
-Note that these default values are static once installed, and are not updated unless a new module installation occurs, even when the content of `ModuleTemplate` changes.
+Note that these default values are static once installed, and are not updated unless a new module installation occurs, even when the content of ModuleTemplate changes.
 This is because a customer is expected to be able to change the settings of the module CR at any time without the Kyma ecosystem overriding it.
 Thus, the module CR can also be treated as a customer or runtime-facing API that allows us to offer typed configuration for multiple parts of Kyma.
 
@@ -95,12 +93,12 @@ Thus, the module CR can also be treated as a customer or runtime-facing API that
 
 With [Crossplane](https://crossplane.io/), you are fundamentally allowing providers to interact with your Control Plane.
 The most similar aspect of the Crossplane lifecycle is that we also use opinionated OCI images to bundle our modules. 
-We use `ModuleTemplate` to reference our layers containing the necessary metadata to deploy our controllers, just like Crossplane.
+We use ModuleTemplate to reference our layers containing the necessary metadata to deploy our controllers, just like Crossplane.
 However, we do not speculate on the permissions of controllers and enforce stricter versioning guarantees, only allowing `semver` to be used for modules and `Digest` for the `sha` digests for individual layers of modules.
 
 Fundamentally different is also the way that `Providers` and `Composite Resources` work compared to the Kyma ecosystem.
 While Kyma allows any module to bring an individual CR into the cluster for configuration, a `Provider` in Crossplane is located in Control Plane and only directs installation targets.
-We handle this kind of data centrally through acquisition strategies for credentials and other centrally managed data in the `Kyma` CR. 
+We handle this kind of data centrally through acquisition strategies for credentials and other centrally managed data in the Kyma CR. 
 Thus, it is most fitting to consider the Kyma ecosystem as a heavily opinionated `Composite Resource` from Crossplane, with the `Managed Resource` being tracked with the Lifecycle Manager manifest. 
 
 Compared to Crossplane, we also encourage the creation of our CRDs in place of the concept of the `Managed Resource`, and in the case of configuration, we can synchronize not only a desired state for all modules from Control Plane but also from the runtime.
@@ -184,9 +182,9 @@ This `Status` sub-resource must contain all valid `State` (`.status.state`) valu
 Include the `State` values in your `Status` sub-resource, either through inline reference or direct inclusion. These values have literal meaning behind them, so use them properly.
 
 2. Optionally, you can add additional fields to your `Status` sub-resource. 
-For instance, `Conditions` are added to `SampleCR` in the [API definition](api/v1alpha1/sample_types.go).
+For instance, `Conditions` are added to Sample CR in the [API definition](api/v1alpha1/sample_types.go).
 This also includes the required `State` values, using an inline reference.
-See the following SampleCR reference implementation.
+See the following Sample CR reference implementation.
     
     ```go
     package v1alpha1
@@ -218,9 +216,9 @@ See the following SampleCR reference implementation.
 
 1. Implement `State` handling to represent the corresponding state of the reconciled resource by following the [kubebuilder](https://book.kubebuilder.io/) guidelines on how to implement controllers.
 
-2. Refer to `SampleCR` [controller implementation](controllers/sample_controller_rendered_resources.go) for setting the appropriate `State` and `Conditions` values to your `Status` sub-resource.
+2. Refer to the Sample CR [controller implementation](controllers/sample_controller_rendered_resources.go) for setting the appropriate `State` and `Conditions` values to your `Status` sub-resource.
 
-`SampleCR` is reconciled to install or uninstall a list of rendered resources from a YAML file on the file system.
+The Sample CR is reconciled to install or uninstall a list of rendered resources from a YAML file on the file system.
     
    ```go   
    r.setStatusForObjectInstance(ctx, objectInstance, status.
@@ -228,7 +226,7 @@ See the following SampleCR reference implementation.
    WithInstallConditionStatus(metav1.ConditionTrue, objectInstance.GetGeneration()))
    ```
     
-3. The reference controller implementations listed above use [Server-Side Apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) instead of conventional methods to process resources on the target cluster.
+1. The reference controller implementations listed above use [Server-Side Apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) instead of conventional methods to process resources on the target cluster.
 You can leverage parts of this logic to implement your own controller logic. Check out functions inside these controllers for state management and other implementation details.
 
 ### Local Testing
@@ -285,7 +283,7 @@ Towards the earlier stages of your operator development, RBACs can accommodate a
     ``` 
 
 The sample module data in this repository includes a YAML manifest in the `module-data/yaml` directories.
-Reference the YAML manifest directory with the `spec.resourceFilePath` attribute of the `Sample` CR.
+Reference the YAML manifest directory with the `spec.resourceFilePath` attribute of the Sample CR.
 The example CRs in the `config/samples` directory already reference the mentioned directories.
 Feel free to organize the static data differently. The included `module-data` directory serves just as an example.
 You may also decide not to include any static data at all. In that case, you must provide the controller with the YAML data at runtime using other techniques, such as Kubernetes volume mounting.
@@ -336,16 +334,16 @@ You can also define multiple files in `config/samples`, but you must specify the
    The following fields are available for the configuration of the module:
    - `name`: (Required) The name of the module.
    - `version`: (Required) The version of the module.
-   - `channel`: (Required) The channel that must be used in the `ModuleTemplate`. Must be a valid Kyma state.
+   - `channel`: (Required) The channel that must be used in ModuleTemplate. Must be a valid Kyma state.
    - `manifest`: (Required) The relative path to the manifest file (generated in the first step).
    - `defaultCR`: (Optional) The relative path to a YAML file containing the default CR for the module.
-   - `resourceName`: (Optional) The name for the `ModuleTemplate` that will be created.
-   - `namespace`: (Optional) The namespace where the `ModuleTemplate` will be deployed.
+   - `resourceName`: (Optional) The name for ModuleTemplate that is created.
+   - `namespace`: (Optional) The namespace where ModuleTemplate is deployed.
    - `security`: (Optional) The name of the security scanners configuration file.
-   - `internal`: (Optional) Determines whether the `ModuleTemplate` must have the internal flag or not. The type is bool.
-   - `beta`: (Optional) Determines whether the `ModuleTemplate` must have the beta flag or not. The type is bool.
-   - `labels`: (Optional) Additional labels for the `ModuleTemplate`.
-   - `annotations`: (Optional) Additional annotations for the `ModuleTemplate`.
+   - `internal`: (Optional) Determines whether ModuleTemplate must have the internal flag or not. The type is bool.
+   - `beta`: (Optional) Determines whether ModuleTemplate must have the beta flag or not. The type is bool.
+   - `labels`: (Optional) Additional labels for ModuleTemplate.
+   - `annotations`: (Optional) Additional annotations for ModuleTemplate.
    - `customStateCheck`: (Optional) Specifies custom state checks for the module.
 
    An example configuration:
@@ -364,7 +362,7 @@ You can also define multiple files in `config/samples`, but you must specify the
    
 > **WARNING:** For external registries (for example, Google Container/Artifact Registry) never use `insecure`. Instead, specify credentials. You can find more details in the CLI help documentation.
    
-4. Verify that the module creation succeeded and observe the generated `template.yaml` file. It will contain the `ModuleTemplate` CR and descriptor of the component under `spec.descriptor.component`.   
+1. Verify that the module creation succeeded and observe the generated `template.yaml` file. It will contain the ModuleTemplate CR and descriptor of the component under `spec.descriptor.component`.   
 
    ```yaml
    component:
@@ -419,7 +417,7 @@ The CLI created various layers that are referenced in the `blobs` directory. For
 
 > **WARNING:** This step requires the working OCI registry and cluster. See [Prerequisites](#prerequisites).
 
-Now that everything is prepared in a cluster of your choice, you can reference the module within any `Kyma` CR in your Control Plane cluster.
+Now that everything is prepared in a cluster of your choice, you can reference the module within any Kyma CR in your Control Plane cluster.
 
 Deploy the [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager/tree/main) to the Control Plane cluster with:
 
@@ -427,12 +425,12 @@ Deploy the [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager
    kyma alpha deploy
    ```
 
-### Deploying `ModuleTemplate` into the Control Plane
+### Deploying ModuleTemplate into the Control Plane
 
-Run the command for creating `ModuleTemplate` in your cluster.
-After this the module will be available for consumption based on the module name configured with the label `operator.kyma-project.io/module-name` in `ModuleTemplate`.
+Run the command for creating ModuleTemplate in your cluster.
+After this the module will be available for consumption based on the module name configured with the label `operator.kyma-project.io/module-name` in ModuleTemplate.
 
-> **WARNING:** Depending on your setup against either a k3d cluster or registry, you must run the script `/scripts/patch_local_template.sh` before pushing `ModuleTemplate` to have the proper registry setup.
+> **WARNING:** Depending on your setup against either a k3d cluster or registry, you must run the script `/scripts/patch_local_template.sh` before pushing ModuleTemplate to have the proper registry setup.
 This is necessary for k3d clusters due to port-mapping issues in the cluster that the operators cannot reuse. Take a look at the [relevant issue for more details](https://github.com/kyma-project/module-manager/issues/136#issuecomment-1279542587).
 
    ```sh
@@ -473,7 +471,7 @@ For this reason, here are some best practices on how to debug modules developed 
    ```
 3. Depending on your issue, observe the deployment logs from either Lifecycle Manager or Module Manager. Make sure that no errors have occurred.
 
-Usually, the issue is related to either RBAC configuration (for troubleshooting minimum privileges for the controllers, see our dedicated [RBAC](#role-based-access-control-rbac) section), misconfigured image, module registry or `ModuleTemplate`.
+Usually, the issue is related to either RBAC configuration (for troubleshooting minimum privileges for the controllers, see our dedicated [RBAC](#role-based-access-control-rbac) section), misconfigured image, module registry or ModuleTemplate.
 As a last resort, make sure that you are running within a single-cluster or a dual-cluster setup, watch out for any steps with a `WARNING` specified and retry with a freshly provisioned cluster.
 For cluster provisioning, make sure to follow the recommendations for clusters mentioned in our [Prerequisites](#prerequisites) for this guide.
 
