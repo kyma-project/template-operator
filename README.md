@@ -39,7 +39,7 @@ Additionally, it hides Kubernetes boilerplate code to develop fast and efficient
 
 Before going in-depth, make sure you are familiar with:
 
-- [Modularization in Kyma](https://github.com/kyma-project/community/tree/main/concepts/modularization)
+- [Kyma Modularization](https://github.com/kyma-project/community/tree/main/concepts/modularization)
 - [Operator Pattern in Kubernetes](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)
 
 This guide serves as a comprehensive step-by-step tutorial on properly creating a module from scratch using the operator that installs the Kubernetes YAML resources. 
@@ -55,11 +55,11 @@ Every Kyma module using the operator follows five basic principles:
 - Operates on at most one runtime at any given time
 
 ### Release Channels
-Release channels let the customers try new modules and features early and decide when to apply the updates. For more info, see the [release channels documentation in the modularization overview](https://github.com/kyma-project/community/tree/main/concepts/modularization#release-channels).
+Release channels let the customers try new modules and features early and decide when to apply the updates. For more information, see the [release channels documentation in the modularization overview](https://github.com/kyma-project/community/tree/main/concepts/modularization#release-channels).
 
 The following rules apply to the channel naming:
-1. Lower case letters from a to z.
-2. The total length is between 3 and 32.
+1. Lowercase letters from a to z.
+2. The total length is between 3 and 32 characters.
 
 If you are planning to migrate a pre-existing module within Kyma, read the [transition plan for existing modules](https://github.com/kyma-project/community/blob/main/concepts/modularization/transition.md).
 
@@ -67,16 +67,16 @@ If you are planning to migrate a pre-existing module within Kyma, read the [tran
 
 #### Operator Lifecycle Manager (OLM)
 
-Compared to [OLM](https://olm.operatorframework.io/), the Kyma modularization differs in a few aspects.
+Compared to [OLM](https://olm.operatorframework.io/), modular Kyma differs in a few aspects.
 While OLM is built heavily around a static dependency expression, the Kyma modules are expected to resolve dependencies dynamically. This means that in OLM, a module must declare CRDs and APIs it depends on. In Kyma, all modules can depend on each other without declaring it in advance.
 This makes it harder to understand compared to a strict dependency graph, but it comes with a few key advantages:
 
 - Concurrent optimization on the controller level: every controller in Kyma is installed simultaneously and is not blocked from installation until other operators are available.
-This makes it easy to, for example, create or configure resources that do not need to wait for the dependency (for example, ConfigMap can be created even before a deployment that must wait for an API to be present).
+This makes it easy to create or configure resources that do not need to wait for the dependency. For example, ConfigMap can be created even before a Deployment that must wait for an API to be present.
 While this forces controllers to include a case where the dependency is absent, we encourage eventual consistency and do not enforce a strict lifecycle model on the modules.
 - Discoverability is handled not through a registry or server but through a declarative configuration.
 Every module is installed through `ModuleTemplate`, which is semantically the same as registering an operator in an OLM registry or `CatalogSource`. 
-`ModuleTemplate` however is a normal CR and can be installed on Control Plane. 
+`ModuleTemplate`, however, is a normal CR and can be installed on Control Plane. 
 This allows multiple Control Planes to offer differing modules simply at configuration time.
 Also, we do not use file-based catalogs to maintain our catalog but maintain every `ModuleTemplate` through [Open Component Model](https://ocm.software/), an open standard to describe software artifact delivery.
 
@@ -85,7 +85,7 @@ We are heavily inspired by the way that OLM handles release channels, but we do 
 
 There is a distinct difference in the `ModuleTemplate` parts. 
 `ModuleTemplate` contains not only a specification of the operator to be installed through a dedicated layer. It also consists of a set of default values for a given channel when installed for the first time.
-When installing an operator from scratch through Kyma, the module is already initialized with a default set of values.
+When you install an operator from scratch using Kyma, the module is already initialized with a default set of values.
 However, when upgrading, Lifecycle Manager is not expected to update the values to new defaults. Instead, it is a way for module developers to prefill their operators with instructions based on a given environment (the channel).
 Note that these default values are static once installed, and are not updated unless a new module installation occurs, even when the content of `ModuleTemplate` changes.
 This is because a customer is expected to be able to change the settings of the module CR at any time without the Kyma ecosystem overriding it.
@@ -113,7 +113,7 @@ While in Crossplane, it is possible to define custom package, revision, and depe
 
 ### Prerequisites
 
-  > **WARNING:** For all use cases in the guide, you will need a cluster for end-to-end testing outside your [envtest](https://book.kubebuilder.io/reference/envtest.html) integration test suite.
+  > **WARNING:** For all use cases in the guide, you need a cluster for end-to-end testing outside your [envtest](https://book.kubebuilder.io/reference/envtest.html) integration test suite.
   It's HIGHLY RECOMMENDED that you follow this guide for a smooth development process.
   This is a good alternative if you do not want to use the entire Control Plane infrastructure and still want to test your operators properly.
 
@@ -128,14 +128,14 @@ Use one of the following options to install kubebuilder:
     ```bash
     brew install kubebuilder
     ```
-#### **Fetch sources directly**
+#### **Fetch Sources Directly**
     ```bash
     curl -L -o kubebuilder https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH)
     chmod +x kubebuilder && mv kubebuilder /usr/local/bin/
     ```
 <!-- tabs:end -->
 * [Kyma CLI](https://storage.googleapis.com/kyma-cli-stable/kyma-darwin)
-* An OCI registry to host OCI Image
+* An OCI registry to host OCI image
   * Follow our [Provision cluster and OCI registry](https://github.com/kyma-project/lifecycle-manager/blob/main/docs/developer-tutorials/provision-cluster-and-registry.md) guide to create a local registry provided by k3d or use the [Google Container Registry (GCR)](https://github.com/kyma-project/lifecycle-manager/blob/main/docs/developer-tutorials/prepare-gcr-registry.md) guide for a remote registry.
 
 ### Generate the kubebuilder Operator
@@ -152,16 +152,16 @@ Use one of the following options to install kubebuilder:
 
 3. Run `make manifests` to generate respective CRDs.
 
-Set up a basic kubebuilder operator with appropriate scaffolding.
+4. Set up a basic kubebuilder operator with appropriate scaffolding.
 
-#### Optional: Adjust the default config resources
+#### Optional: Adjust the Default Config Resources
 If the module operator is deployed under the same namespace with other operators, differentiate your resources by adding common labels.
 
-1. Add `commonLabels` to default `kustomization.yaml`, [reference implementation](config/default/kustomization.yaml).
+1. Add `commonLabels` to default `kustomization.yaml`. See [reference implementation](config/default/kustomization.yaml).
 
 2. Include all resources (for example, [manager.yaml](config/manager/manager.yaml)) that contain label selectors by using `commonLabels`.
 
-Further reading: [Kustomize built-in commonLabels](https://github.com/kubernetes-sigs/kustomize/blob/master/api/internal/konfig/builtinpluginconsts/commonlabels.go)
+Further reading: [Kustomize Built-In commonLabels](https://github.com/kubernetes-sigs/kustomize/blob/master/api/internal/konfig/builtinpluginconsts/commonlabels.go)
 
 #### API Definition Steps
 
@@ -183,7 +183,7 @@ This `Status` sub-resource must contain all valid `State` (`.status.state`) valu
 
 Include the `State` values in your `Status` sub-resource, either through inline reference or direct inclusion. These values have literal meaning behind them, so use them properly.
 
-1. Optionally, you can add additional fields to your `Status` sub-resource. 
+2. Optionally, you can add additional fields to your `Status` sub-resource. 
 For instance, `Conditions` are added to `SampleCR` in the [API definition](api/v1alpha1/sample_types.go).
 This also includes the required `State` values, using an inline reference.
 See the following SampleCR reference implementation.
@@ -210,7 +210,7 @@ See the following SampleCR reference implementation.
     }
     ```
 
-2. Run `make generate manifests`, to generate boilerplate code and manifests.
+3. Run `make generate manifests` to generate boilerplate code and manifests.
 
 #### Controller Implementation Steps
 
@@ -229,16 +229,15 @@ See the following SampleCR reference implementation.
    ```
     
 3. The reference controller implementations listed above use [Server-Side Apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) instead of conventional methods to process resources on the target cluster.
-Parts of this logic can be leveraged to implement your own controller logic. Check out functions inside these controllers for state management and other implementation details.
+You can leverage parts of this logic to implement your own controller logic. Check out functions inside these controllers for state management and other implementation details.
 
 ### Local Testing
-* Connect to your cluster and ensure `kubectl` is pointing to the desired cluster.
+* Connect to your cluster and ensure kubectl is pointing to the desired cluster.
 * Install CRDs with `make install`
 **WARNING:** This installs a CRD on your cluster, so create your cluster before running the `install` command. See [Prerequisites](#prerequisites) for details on the cluster setup.
 * _Local setup_: install your module CR on a cluster and execute `make run` to start your operator locally.
 
-> **WARNING:** Note that while `make run` fully runs your controller against the cluster, it is not feasible to compare it to a productive operator.
-This is mainly because it runs with a client configured with privileges derived from your `KUBECONFIG` environment variable. For in-cluster configuration, see [Guide on RBAC Management](#rbac).
+> **WARNING:** Note that while `make run` fully runs your controller against the cluster, it is not feasible to compare it to a productive operator. This is mainly because it runs with a client configured with privileges derived from your `KUBECONFIG` environment variable. For in-cluster configuration, see [Guide on RBAC Management](#rbac).
 
 ## Bundling and Installation
 
@@ -260,7 +259,7 @@ Ensure you have appropriate authorizations assigned to your controller binary be
 The Sample CR [controller implementation](controllers/sample_controller_rendered_resources.go) includes RBAC generation (via kubebuilder) for all resources across all API groups.
 Adjust it according to the chart manifest resources and reconciliation types.
 
-Towards the earlier stages of your operator development, RBACs can accommodate all resource types and adjust them later per your requirements.
+Towards the earlier stages of your operator development, RBACs can accommodate all resource types and adjust them later according to your requirements.
 
    ```go
    package controllers
@@ -306,7 +305,7 @@ This builds the controller image and then pushes it as the image defined in `IMG
 
 ### Build and Push Your Module to the Registry
 
-> **WARNING:** This step requires the working OCI Registry, cluster and Kyma CLI. See [Prerequisites](#prerequisites).
+> **WARNING:** This step requires the working OCI Registry, cluster, and Kyma CLI. See [Prerequisites](#prerequisites).
 
 1. Generate the CRDs and resources for the module from the `default` kustomization into a manifest file using the following command:
    ```shell
@@ -316,9 +315,9 @@ You can use this file as a manifest for the module configuration in the next ste
    
 Furthermore, make sure the settings from [Prepare and Build Module Operator Image](#prepare-and-build-module-operator-image) for single-cluster mode, and the following module settings are applied:
 * is hosted at `op-kcp-registry.localhost:8888/unsigned`
-* for a k3d registry the `insecure` flag (`http` instead of `https` for registry communication) is enabled
+* for a k3d registry, the `insecure` flag (`http` instead of `https` for registry communication) is enabled
 * Kyma CLI in `$PATH` under `kyma` is used
-* the default sample under `config/samples/operator.kyma-project.io_v1alpha1_sample.yaml` has been adjusted to be a valid CR.
+* the default sample under `config/samples/operator.kyma-project.io_v1alpha1_sample.yaml` has been adjusted to be a valid CR
 
 > **WARNING:** The settings above reflect your default configuration for a module. To change them, adjust them manually to a different configuration. 
 You can also define multiple files in `config/samples`, but you must specify the correct file during the bundling.
@@ -343,8 +342,8 @@ You can also define multiple files in `config/samples`, but you must specify the
    - `resourceName`: (Optional) The name for the `ModuleTemplate` that will be created.
    - `namespace`: (Optional) The namespace where the `ModuleTemplate` will be deployed.
    - `security`: (Optional) The name of the security scanners configuration file.
-   - `internal`: (Optional) Determines whether the `ModuleTemplate` must have the internal flag or not. Type is bool.
-   - `beta`: (Optional) Determines whether the `ModuleTemplate` must have the beta flag or not. Type is bool.
+   - `internal`: (Optional) Determines whether the `ModuleTemplate` must have the internal flag or not. The type is bool.
+   - `beta`: (Optional) Determines whether the `ModuleTemplate` must have the beta flag or not. The type is bool.
    - `labels`: (Optional) Additional labels for the `ModuleTemplate`.
    - `annotations`: (Optional) Additional annotations for the `ModuleTemplate`.
    - `customStateCheck`: (Optional) Specifies custom state checks for the module.
@@ -460,9 +459,9 @@ When creating this Kyma CR in your Control Plane cluster, installation of the sp
 ### Debugging the Operator Ecosystem
 
 The operator ecosystem around Kyma is complex, and it might become troublesome to debug issues in case your module is not installed correctly.
-For this reason here are some best practices on how to debug modules developed through this guide.
+For this reason, here are some best practices on how to debug modules developed using this guide.
 
-1. Verify the Kyma installation state is ready by verifying all conditions.
+1. Verify the Kyma installation state is `Ready` by verifying all conditions.
    ```shell
     JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.reason}:{@.status};{end}{end}' \
     && kubectl get kyma -o jsonpath="$JSONPATH" -n kcp-system
@@ -472,13 +471,13 @@ For this reason here are some best practices on how to debug modules developed t
     JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}' \
     && kubectl get manifest -o jsonpath="$JSONPATH"-n kcp-system
    ```
-3. Depending on your issue, either observe the deployment logs from either Lifecycle Manager or Module Manager. Make sure that no errors have occurred.
+3. Depending on your issue, observe the deployment logs from either Lifecycle Manager or Module Manager. Make sure that no errors have occurred.
 
 Usually, the issue is related to either RBAC configuration (for troubleshooting minimum privileges for the controllers, see our dedicated [RBAC](#role-based-access-control-rbac) section), misconfigured image, module registry or `ModuleTemplate`.
 As a last resort, make sure that you are running within a single-cluster or a dual-cluster setup, watch out for any steps with a `WARNING` specified and retry with a freshly provisioned cluster.
-For cluster provisioning, make sure to follow our recommendations for clusters mentioned in our [Prerequisites](#prerequisites) for this guide.
+For cluster provisioning, make sure to follow the recommendations for clusters mentioned in our [Prerequisites](#prerequisites) for this guide.
 
-Lastly, if you are still unsure, open an issue with a description and steps to reproduce. We will be happy to help you with a solution.
+Lastly, if you are still unsure, [open an issue](https://github.com/kyma-project/template-operator/issues/new/choose) with a description and steps to reproduce. We will be happy to help you with a solution.
 
 ### Registering your Module Within the Control Plane
 
