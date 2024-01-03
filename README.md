@@ -226,7 +226,7 @@ The Sample CR is reconciled to install or uninstall a list of rendered resources
    WithInstallConditionStatus(metav1.ConditionTrue, objectInstance.GetGeneration()))
    ```
     
-1. The reference controller implementations listed above use [Server-Side Apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) instead of conventional methods to process resources on the target cluster.
+3. The reference controller implementations listed above use [Server-Side Apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) instead of conventional methods to process resources on the target cluster.
 You can leverage parts of this logic to implement your own controller logic. Check out functions inside these controllers for state management and other implementation details.
 
 ### Local Testing
