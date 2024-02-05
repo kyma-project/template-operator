@@ -48,6 +48,11 @@ var _ = Describe("Sample CR is created with the correct resource path", Ordered,
 			WithPolling(500 * time.Millisecond).
 			Should(Equal(CRStatus{State: v1alpha1.StateWarning,
 				InstallConditionStatus: metav1.ConditionTrue, Err: nil}))
+		Consistently(getCRStatus(sampleCRKey)).
+			WithTimeout(5 * time.Second).
+			WithPolling(100 * time.Millisecond).
+			Should(Equal(CRStatus{State: v1alpha1.StateWarning,
+				InstallConditionStatus: metav1.ConditionTrue, Err: nil}))
 	})
 
 	It("should delete when FinalDeletionState set to Deleting", func() {
