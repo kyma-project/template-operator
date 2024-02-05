@@ -16,13 +16,12 @@ import (
 )
 
 var (
-	sampleName = "kyma-sample"
-	podNs      = "redis"
-	podName    = "busybox-pod"
+	podNs   = "redis"
+	podName = "busybox-pod"
 )
 
 var _ = Describe("Sample CR is created with the correct resource path", Ordered, func() {
-	sampleCR := createSampleCR(sampleName, "./test/busybox/manifest")
+	sampleCR := createSampleCR("valid-sample", "./test/busybox/manifest")
 	sampleCRKey := client.ObjectKeyFromObject(sampleCR)
 
 	It("should create SampleCR and resources", func() {
@@ -65,7 +64,7 @@ var _ = Describe("Sample CR is created with the correct resource path", Ordered,
 })
 
 var _ = Describe("Sample CR is created with an incorrect resource path", Ordered, func() {
-	sampleCR := createSampleCR(sampleName, "./invalid/path")
+	sampleCR := createSampleCR("invalid-sample", "./invalid/path")
 	sampleCRKey := client.ObjectKeyFromObject(sampleCR)
 
 	It("should create SampleCR in Error state", func() {
