@@ -122,7 +122,7 @@ KUSTOMIZE_VERSION ?= v5.3.0
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download & Build kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) go install sigs.k8s.io/kustomize/kustomize/v4@$(KUSTOMIZE_VERSION)
+	GOBIN=$(LOCALBIN) go install sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION)
 
 ########## controller-gen ###########
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
