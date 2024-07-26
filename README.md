@@ -346,7 +346,7 @@ You can also define multiple files in `config/samples`, but you must specify the
    - `annotations`: (Optional) Additional annotations for ModuleTemplate.
    - `customStateCheck`: (Optional) [DEPRECATED] Specifies custom state checks for the module.
    
-   > **CAUTION:** This field is deprecated and will be removed on {DATE}. 
+   > **CAUTION:** This field is deprecated and will be removed in the future. 
 
    An example configuration:
 
