@@ -346,7 +346,7 @@ You can also define multiple files in `config/samples`, but you must specify the
    - `annotations`: (Optional) Additional annotations for ModuleTemplate.
    - `customStateCheck`: (Optional) [DEPRECATED] Specifies custom state checks for the module.
    
-   > **CAUTION:** This field is deprecated and will be removed in the future. 
+   > **CAUTION:** This field was deprecated at the end of July 2024 and will be deleted in the next [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager/tree/main/) API versions. 
 
    An example configuration:
 
