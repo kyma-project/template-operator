@@ -27,7 +27,7 @@ jobs:
         run: echo ${{ steps.get_tag.outputs.TAG }}
   build-image:
     needs: compute-tag
-    uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main # Usage: kyma-project/test-infra/.github/workflows/image-builder.yml@main
+    uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main
     with:
       name: template-operator
       dockerfile: Dockerfile
