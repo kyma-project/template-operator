@@ -9,7 +9,7 @@ require (
 	github.com/kyma-project/template-operator/api v0.0.0-00010101000000-000000000000
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
-	golang.org/x/time v0.6.0
+	golang.org/x/time v0.7.0
 	k8s.io/api v0.31.1
 	k8s.io/apimachinery v0.31.1
 	k8s.io/client-go v0.31.1
