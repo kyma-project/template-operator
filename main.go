@@ -106,7 +106,8 @@ func main() {
 			BindAddress: flagVar.metricsAddr,
 		},
 		WebhookServer: webhook.NewServer(webhook.Options{
-			Port: 9443}),
+			Port: 9443,
+		}),
 		HealthProbeBindAddress: flagVar.probeAddr,
 		LeaderElection:         flagVar.enableLeaderElection,
 		LeaderElectionID:       "76223278.kyma-project.io",
