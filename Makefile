@@ -166,6 +166,7 @@ GOLANG_CI_LINT_VERSION ?= v1.60.3
 lint: ## Download & Build & Run golangci-lint against code.
 	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANG_CI_LINT_VERSION)
 	$(LOCALBIN)/golangci-lint run --verbose -c .golangci.yaml
+	cd api && $(LOCALBIN)/golangci-lint run --verbose -c ../.golangci.yaml
 
 .PHONY: configure-git-origin
 configure-git-origin:
