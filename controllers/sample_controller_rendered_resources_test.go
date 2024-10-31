@@ -6,14 +6,14 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kyma-project/template-operator/api/v1alpha1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -98,9 +98,9 @@ func createSampleCR(sampleName, path string) *v1alpha1.Sample {
 }
 
 func getPod(namespace, podName string) func(g Gomega) bool {
-	return func(g Gomega) bool {
+	return func(gomega Gomega) bool {
 		clientSet, err := kubernetes.NewForConfig(reconciler.Config)
-		g.Expect(err).ToNot(HaveOccurred())
+		gomega.Expect(err).ToNot(HaveOccurred())
 
 		pod, err := clientSet.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
 		if err != nil {
@@ -115,7 +115,7 @@ func getPod(namespace, podName string) func(g Gomega) bool {
 		})
 
 		_, err = clientSet.CoreV1().Pods(namespace).UpdateStatus(ctx, pod, metav1.UpdateOptions{})
-		g.Expect(err).ToNot(HaveOccurred())
+		gomega.Expect(err).ToNot(HaveOccurred())
 		return true
 	}
 }
@@ -127,15 +127,15 @@ type CRStatus struct {
 }
 
 func getCRStatus(sampleObjKey client.ObjectKey) func(g Gomega) CRStatus {
-	return func(g Gomega) CRStatus {
+	return func(gomega Gomega) CRStatus {
 		sampleCR := &v1alpha1.Sample{}
 		err := k8sClient.Get(ctx, sampleObjKey, sampleCR)
 		if err != nil {
 			return CRStatus{State: v1alpha1.StateError, Err: err}
 		}
-		g.Expect(err).NotTo(HaveOccurred())
+		gomega.Expect(err).NotTo(HaveOccurred())
 		condition := meta.FindStatusCondition(sampleCR.Status.Conditions, v1alpha1.ConditionTypeInstallation)
-		g.Expect(condition).ShouldNot(BeNil())
+		gomega.Expect(condition).ShouldNot(BeNil())
 		return CRStatus{
 			State:                  sampleCR.Status.State,
 			InstallConditionStatus: condition.Status,
@@ -145,9 +145,9 @@ func getCRStatus(sampleObjKey client.ObjectKey) func(g Gomega) CRStatus {
 }
 
 func checkDeleted(sampleObjKey client.ObjectKey) func(g Gomega) bool {
-	return func(g Gomega) bool {
+	return func(gomega Gomega) bool {
 		clientSet, err := kubernetes.NewForConfig(reconciler.Config)
-		g.Expect(err).ToNot(HaveOccurred())
+		gomega.Expect(err).ToNot(HaveOccurred())
 
 		// check if Pod resource is deleted
 		_, err = clientSet.CoreV1().Pods(podNs).Get(ctx, podName, metav1.GetOptions{})

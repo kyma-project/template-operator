@@ -22,12 +22,9 @@ import (
 	"os"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	machineryruntime "k8s.io/apimachinery/pkg/runtime"
+	machineryutilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -36,7 +33,10 @@ import (
 
 	"github.com/kyma-project/template-operator/api/v1alpha1"
 	"github.com/kyma-project/template-operator/controllers"
-	//+kubebuilder:scaffold:imports
+
+	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
+	// to ensure that exec-entrypoint and run can make use of them.
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 const (
@@ -45,11 +45,7 @@ const (
 	failureBaseDelayDefault     = 1 * time.Second
 	failureMaxDelayDefault      = 1000 * time.Second
 	operatorName                = "template-operator"
-)
-
-var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	webhookPort                 = 9443
 )
 
 type FlagVar struct {
@@ -65,16 +61,20 @@ type FlagVar struct {
 	printVersion         bool
 }
 
-func init() { //nolint:gochecknoinits
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(controllers.AddToScheme(scheme))
+func registerSchemes(scheme *machineryruntime.Scheme) {
+	machineryutilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	machineryutilruntime.Must(controllers.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
-//nolint:gochecknoglobals
+//nolint:gochecknoglobals // used to embed static binary version during release builds
 var buildVersion = "not_provided"
 
 func main() {
+	scheme := machineryruntime.NewScheme()
+	setupLog := ctrl.Log.WithName("setup")
+	registerSchemes(scheme)
+
 	flagVar := defineFlagVar()
 	opts := zap.Options{
 		Development: true,
@@ -106,7 +106,7 @@ func main() {
 			BindAddress: flagVar.metricsAddr,
 		},
 		WebhookServer: webhook.NewServer(webhook.Options{
-			Port: 9443,
+			Port: webhookPort,
 		}),
 		HealthProbeBindAddress: flagVar.probeAddr,
 		LeaderElection:         flagVar.enableLeaderElection,

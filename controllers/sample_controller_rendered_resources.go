@@ -23,8 +23,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"sigs.k8s.io/controller-runtime/pkg/scheme"
-
 	"github.com/go-logr/logr"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,12 +33,12 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/scheme"
 
 	"github.com/kyma-project/template-operator/api/v1alpha1"
-
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
 // SampleReconciler reconciles a Sample object.
@@ -61,13 +59,15 @@ type ManifestResources struct {
 
 var (
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme.
+	//nolint:gochecknoglobals // used to register Sample CRD on startup
 	SchemeBuilder = &scheme.Builder{GroupVersion: v1alpha1.GroupVersion}
 
 	// AddToScheme adds the types in this group-version to the given scheme.
+	//nolint:gochecknoglobals // used to register Sample CRD on startup
 	AddToScheme = SchemeBuilder.AddToScheme
 )
 
-func init() { //nolint:gochecknoinits
+func init() { //nolint:gochecknoinits // used to register Sample CRD on startup
 	SchemeBuilder.Register(&v1alpha1.Sample{}, &v1alpha1.SampleList{})
 }
 
@@ -84,7 +84,7 @@ func init() { //nolint:gochecknoinits
 func (r *SampleReconciler) SetupWithManager(mgr ctrl.Manager, rateLimiter RateLimiter) error {
 	r.Config = mgr.GetConfig()
 
-	return ctrl.NewControllerManagedBy(mgr).
+	if err := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Sample{}).
 		WithOptions(controller.Options{
 			RateLimiter: TemplateRateLimiter(
@@ -94,7 +94,10 @@ func (r *SampleReconciler) SetupWithManager(mgr ctrl.Manager, rateLimiter RateLi
 				rateLimiter.Burst,
 			),
 		}).
-		Complete(r)
+		Complete(r); err != nil {
+		return fmt.Errorf("error while setting up controller: %w", err)
+	}
+	return nil
 }
 
 // Reconcile is the entry point from the controller-runtime framework.
@@ -109,7 +112,10 @@ func (r *SampleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		// requeue (we'll need to wait for a new notification), and we can get them
 		// on deleted requests.
 		logger.Info(req.NamespacedName.String() + " got deleted!")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+		if client.IgnoreNotFound(err) != nil {
+			return ctrl.Result{}, fmt.Errorf("error while getting object: %w", err)
+		}
+		return ctrl.Result{}, nil
 	}
 
 	// check if deletionTimestamp is set, retry until it gets deleted
@@ -201,7 +207,10 @@ func (r *SampleReconciler) HandleDeletingState(ctx context.Context, objectInstan
 	resourceObjs, err := getResourcesFromLocalPath(objectInstance.Spec.ResourceFilePath, logger)
 	if err != nil && controllerutil.RemoveFinalizer(objectInstance, finalizer) {
 		// if error is encountered simply remove the finalizer and delete the reconciled resource
-		return r.Client.Update(ctx, objectInstance)
+		if err := r.Client.Update(ctx, objectInstance); err != nil {
+			return fmt.Errorf("error while removing finalizer: %w", err)
+		}
+		return nil
 	}
 	r.Event(objectInstance, "Normal", "ResourcesDelete", "deleting resources")
 
@@ -224,7 +233,10 @@ func (r *SampleReconciler) HandleDeletingState(ctx context.Context, objectInstan
 
 	// if resources are ready to be deleted, remove finalizer
 	if controllerutil.RemoveFinalizer(objectInstance, finalizer) {
-		return r.Client.Update(ctx, objectInstance)
+		if err := r.Client.Update(ctx, objectInstance); err != nil {
+			return fmt.Errorf("error while removing finalizer: %w", err)
+		}
+		return nil
 	}
 	return nil
 }
@@ -268,7 +280,7 @@ func (r *SampleReconciler) processResources(ctx context.Context, objectInstance 
 	resourceObjs, err := getResourcesFromLocalPath(objectInstance.Spec.ResourceFilePath, logger)
 	if err != nil {
 		logger.Error(err, "error locating manifest of resources")
-		return err
+		return fmt.Errorf("error locating manifest of resources: %w", err)
 	}
 
 	r.Event(objectInstance, "Normal", "ResourcesInstall", "installing resources")
@@ -278,7 +290,7 @@ func (r *SampleReconciler) processResources(ctx context.Context, objectInstance 
 	for _, obj := range resourceObjs.Items {
 		if err = r.ssa(ctx, obj); err != nil && !errors2.IsAlreadyExists(err) {
 			logger.Error(err, "error during installation of resources")
-			return err
+			return fmt.Errorf("error during installation of resources: %w", err)
 		}
 	}
 	return nil
@@ -295,30 +307,33 @@ func getResourcesFromLocalPath(dirPath string, logger logr.Logger) (*ManifestRes
 	err := filepath.WalkDir(dirPath, func(path string, info fs.DirEntry, err error) error {
 		// initial error
 		if err != nil {
-			return err
+			return fmt.Errorf("error while walkdir %s: %w", dirPath, err)
 		}
 		if !info.IsDir() {
 			return nil
 		}
 		dirEntries, err = os.ReadDir(dirPath)
-		return err
+		if err != nil {
+			return fmt.Errorf("error while reading directory %s: %w", dirPath, err)
+		}
+		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error while walkdir %s: %w", dirPath, err)
 	}
 
 	childCount := len(dirEntries)
 	if childCount == 0 {
-		logger.V(debugLogLevel).Info(fmt.Sprintf("no yaml file found at file path %s", dirPath))
-		return nil, nil
+		logger.V(debugLogLevel).Info("no yaml file found at file path" + dirPath)
+		return nil, nil //nolint:nilnil // nil is returned if no yaml file is found
 	} else if childCount > 1 {
-		logger.V(debugLogLevel).Info(fmt.Sprintf("more than one yaml file found at file path %s", dirPath))
-		return nil, nil
+		logger.V(debugLogLevel).Info("more than one yaml file found at file path" + dirPath)
+		return nil, nil //nolint:nilnil // nil is returned if more than one yaml file is found
 	}
 	file := dirEntries[0]
 	allowedExtns := sets.NewString(".yaml", ".yml")
 	if !allowedExtns.Has(filepath.Ext(file.Name())) {
-		return nil, nil
+		return nil, nil //nolint:nilnil // nil is returned if file is not in yaml format
 	}
 
 	fileBytes, err := os.ReadFile(filepath.Join(dirPath, file.Name()))
@@ -332,13 +347,19 @@ func getResourcesFromLocalPath(dirPath string, logger logr.Logger) (*ManifestRes
 func (r *SampleReconciler) ssaStatus(ctx context.Context, obj client.Object) error {
 	obj.SetManagedFields(nil)
 	obj.SetResourceVersion("")
-	return r.Status().Patch(ctx, obj, client.Apply,
-		&client.SubResourcePatchOptions{PatchOptions: client.PatchOptions{FieldManager: fieldOwner}})
+	if err := r.Status().Patch(ctx, obj, client.Apply,
+		&client.SubResourcePatchOptions{PatchOptions: client.PatchOptions{FieldManager: fieldOwner}}); err != nil {
+		return fmt.Errorf("error while patching status: %w", err)
+	}
+	return nil
 }
 
 // ssa patches the object using SSA.
 func (r *SampleReconciler) ssa(ctx context.Context, obj client.Object) error {
 	obj.SetManagedFields(nil)
 	obj.SetResourceVersion("")
-	return r.Patch(ctx, obj, client.Apply, client.ForceOwnership, client.FieldOwner(fieldOwner))
+	if err := r.Patch(ctx, obj, client.Apply, client.ForceOwnership, client.FieldOwner(fieldOwner)); err != nil {
+		return fmt.Errorf("error while patching object: %w", err)
+	}
+	return nil
 }

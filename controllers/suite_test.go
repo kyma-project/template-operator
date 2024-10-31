@@ -22,33 +22,31 @@ import (
 	"testing"
 	"time"
 
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-
-	"github.com/kyma-project/template-operator/controllers"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	operatorkymaprojectiov1alpha1 "github.com/kyma-project/template-operator/api/v1alpha1"
-	//+kubebuilder:scaffold:imports
+	"github.com/kyma-project/template-operator/controllers"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
-	k8sClient  client.Client                 //nolint:gochecknoglobals
-	k8sManager manager.Manager               //nolint:gochecknoglobals
-	testEnv    *envtest.Environment          //nolint:gochecknoglobals
-	ctx        context.Context               //nolint:gochecknoglobals
-	cancel     context.CancelFunc            //nolint:gochecknoglobals
-	reconciler *controllers.SampleReconciler //nolint:gochecknoglobals
+	k8sClient  client.Client
+	k8sManager manager.Manager
+	testEnv    *envtest.Environment
+	ctx        context.Context
+	cancel     context.CancelFunc
+	reconciler *controllers.SampleReconciler
 )
 
 const (
