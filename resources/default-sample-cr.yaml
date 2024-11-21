@@ -4,3 +4,4 @@ metadata:
   name: sample-yaml
 spec:
   resourceFilePath: "./module-data/yaml"
+  someNumber: "20"

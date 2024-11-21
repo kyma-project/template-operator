@@ -47,6 +47,8 @@ spec:
                   ResourceFilePath indicates the local dir path containing a .yaml or .yml,
                   with all required resources to be processed
                 type: string
+              someNumber:
+                type: string
             type: object
           status:
             properties:
