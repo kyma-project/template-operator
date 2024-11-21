@@ -22,6 +22,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/go-logr/logr"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
@@ -155,7 +156,9 @@ func (r *SampleReconciler) HandleInitialState(ctx context.Context, objectInstanc
 
 	return r.setStatusForObjectInstance(ctx, objectInstance, status.
 		WithState(v1alpha1.StateProcessing).
-		WithInstallConditionStatus(metav1.ConditionUnknown, objectInstance.GetGeneration()))
+		WithInstallConditionStatus(metav1.ConditionUnknown, objectInstance.GetGeneration()).
+		WithDivisibleByTwoConditionStatus(metav1.ConditionUnknown, objectInstance.GetGeneration()).
+		WithDivisibleByFiveConditionStatus(metav1.ConditionUnknown, objectInstance.GetGeneration()))
 }
 
 // HandleProcessingState processes the reconciled resource by processing the underlying resources.
@@ -173,10 +176,29 @@ func (r *SampleReconciler) HandleProcessingState(ctx context.Context, objectInst
 			WithState(v1alpha1.StateError).
 			WithInstallConditionStatus(metav1.ConditionFalse, objectInstance.GetGeneration()))
 	}
+
+	someNumberStr := objectInstance.Spec.SomeNumber
+	divisibleByTwoCondition := metav1.ConditionFalse
+	divisibleByFiveCondition := metav1.ConditionFalse
+
+	if someNumberStr != "" {
+		someNumber, err := strconv.Atoi(someNumberStr)
+		if err == nil {
+			if someNumber%2 == 0 {
+				divisibleByTwoCondition = metav1.ConditionTrue
+			}
+			if someNumber%5 == 0 {
+				divisibleByFiveCondition = metav1.ConditionTrue
+			}
+		}
+	}
+
 	// set eventual state to Ready - if no errors were found
 	return r.setStatusForObjectInstance(ctx, objectInstance, status.
 		WithState(r.FinalState).
-		WithInstallConditionStatus(metav1.ConditionTrue, objectInstance.GetGeneration()))
+		WithInstallConditionStatus(metav1.ConditionTrue, objectInstance.GetGeneration()).
+		WithDivisibleByTwoConditionStatus(divisibleByTwoCondition, objectInstance.GetGeneration()).
+		WithDivisibleByFiveConditionStatus(divisibleByFiveCondition, objectInstance.GetGeneration()))
 }
 
 // HandleErrorState handles error recovery for the reconciled resource.

@@ -22,6 +22,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"strings"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,8 +40,11 @@ var (
 	// GroupVersion is group version used to register these objects.
 	GroupVersion = schema.GroupVersion{Group: "operator.kyma-project.io", Version: "v1alpha1"}
 
-	ConditionTypeInstallation = "Installation"
-	ConditionReasonReady      = "Ready"
+	ConditionTypeInstallation     = "Installation"
+	ConditionTypeDivisibleByTwo   = "DivisibleByTwo"
+	ConditionTypeDivisibleByThree = "DivisibleByThree"
+	ConditionTypeDivisibleByFive  = "DivisibleByFive"
+	ConditionReasonReady          = "Ready"
 )
 
 type SampleStatus struct {
@@ -52,6 +57,39 @@ type SampleStatus struct {
 
 func (s *SampleStatus) WithState(state State) *SampleStatus {
 	s.State = state
+	return s
+}
+
+func (s *SampleStatus) WithDivisibleByTwoConditionStatus(status metav1.ConditionStatus, objGeneration int64) *SampleStatus {
+	return s.withDivisibleByCondition(ConditionTypeDivisibleByTwo, status, objGeneration)
+}
+
+func (s *SampleStatus) WithDivisibleByThreeConditionStatus(status metav1.ConditionStatus, objGeneration int64) *SampleStatus {
+	return s.withDivisibleByCondition(ConditionTypeDivisibleByThree, status, objGeneration)
+}
+
+func (s *SampleStatus) WithDivisibleByFiveConditionStatus(status metav1.ConditionStatus, objGeneration int64) *SampleStatus {
+	return s.withDivisibleByCondition(ConditionTypeDivisibleByFive, status, objGeneration)
+}
+
+func (s *SampleStatus) withDivisibleByCondition(conditionType string, status metav1.ConditionStatus, objGeneration int64) *SampleStatus {
+	if s.Conditions == nil {
+		s.Conditions = make([]metav1.Condition, 0, 1)
+	}
+
+	condition := meta.FindStatusCondition(s.Conditions, conditionType)
+
+	if condition == nil {
+		condition = &metav1.Condition{
+			Type:    conditionType,
+			Reason:  ConditionReasonReady,
+			Message: "Value is divisible by " + strings.ToLower(strings.TrimPrefix(conditionType, "DivisibleBy")),
+		}
+	}
+
+	condition.Status = status
+	condition.ObservedGeneration = objGeneration
+	meta.SetStatusCondition(&s.Conditions, *condition)
 	return s
 }
 
@@ -77,6 +115,8 @@ func (s *SampleStatus) WithInstallConditionStatus(status metav1.ConditionStatus,
 }
 
 type SampleSpec struct {
+	SomeNumber string `json:"someNumber,omitempty"`
+
 	// ResourceFilePath indicates the local dir path containing a .yaml or .yml,
 	// with all required resources to be processed
 	ResourceFilePath string `json:"resourceFilePath,omitempty"`
