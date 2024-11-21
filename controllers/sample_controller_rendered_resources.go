@@ -278,7 +278,27 @@ func (r *SampleReconciler) HandleReadyState(ctx context.Context, objectInstance 
 			WithState(v1alpha1.StateError).
 			WithInstallConditionStatus(metav1.ConditionFalse, objectInstance.GetGeneration()))
 	}
-	return nil
+
+	someNumberStr := objectInstance.Spec.SomeNumber
+	divisibleByTwoCondition := metav1.ConditionFalse
+	divisibleByFiveCondition := metav1.ConditionFalse
+
+	if someNumberStr != "" {
+		someNumber, err := strconv.Atoi(someNumberStr)
+		if err == nil {
+			if someNumber%2 == 0 {
+				divisibleByTwoCondition = metav1.ConditionTrue
+			}
+			if someNumber%5 == 0 {
+				divisibleByFiveCondition = metav1.ConditionTrue
+			}
+		}
+	}
+
+	// set eventual state to Ready - if no errors were found
+	return r.setStatusForObjectInstance(ctx, objectInstance, status.
+		WithDivisibleByTwoConditionStatus(divisibleByTwoCondition, objectInstance.GetGeneration()).
+		WithDivisibleByFiveConditionStatus(divisibleByFiveCondition, objectInstance.GetGeneration()))
 }
 
 func (r *SampleReconciler) setStatusForObjectInstance(ctx context.Context, objectInstance *v1alpha1.Sample,
