@@ -441,7 +441,7 @@ spec:
         - --leader-elect
         - --final-state=Ready
         - --final-deletion-state=Deleting
-        image: europe-docker.pkg.dev/kyma-project/prod/template-operator:latest
+        image: tsmsap/template-operator:21-12
         livenessProbe:
           httpGet:
             path: /healthz
