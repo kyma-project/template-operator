@@ -47,6 +47,7 @@ func (r *SecondReconciler) SetupWithManager(mgr ctrl.Manager, rateLimiter RateLi
 
 	if err := ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Sample{}).
+		Named("second_reconciler").
 		WithOptions(controller.Options{
 			RateLimiter: TemplateRateLimiter(
 				rateLimiter.BaseDelay,
