@@ -441,7 +441,7 @@ spec:
         - --leader-elect
         - --final-state=Ready
         - --final-deletion-state=Deleting
-        image: tsmsap/template-operator:01-58
+        image: tsmsap/template-operator:09-10
         livenessProbe:
           httpGet:
             path: /healthz
