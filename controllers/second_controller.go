@@ -183,7 +183,7 @@ func (r *SecondReconciler) ssaStatus(ctx context.Context, obj client.Object) err
 	obj.SetManagedFields(nil)
 	obj.SetResourceVersion("")
 	if err := r.Status().Patch(ctx, obj, client.Apply,
-		&client.SubResourcePatchOptions{PatchOptions: client.PatchOptions{FieldManager: fieldOwner}}); err != nil {
+		&client.SubResourcePatchOptions{PatchOptions: client.PatchOptions{FieldManager: "sample.kyma-project.io/secondowner"}}); err != nil {
 		return fmt.Errorf("error while patching status: %w", err)
 	}
 	return nil
@@ -193,7 +193,7 @@ func (r *SecondReconciler) ssaStatus(ctx context.Context, obj client.Object) err
 func (r *SecondReconciler) ssa(ctx context.Context, obj client.Object) error {
 	obj.SetManagedFields(nil)
 	obj.SetResourceVersion("")
-	if err := r.Patch(ctx, obj, client.Apply, client.ForceOwnership, client.FieldOwner(fieldOwner)); err != nil {
+	if err := r.Patch(ctx, obj, client.Apply, client.ForceOwnership, client.FieldOwner("sample.kyma-project.io/secondowner")); err != nil {
 		return fmt.Errorf("error while patching object: %w", err)
 	}
 	return nil
