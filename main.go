@@ -127,6 +127,14 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Sample")
 		os.Exit(1)
 	}
+	if err = (&controllers.SecondReconciler{
+		Client:             mgr.GetClient(),
+		EventRecorder:      mgr.GetEventRecorderFor(operatorName),
+		FinalDeletionState: v1alpha1.State(flagVar.finalDeletionState),
+	}).SetupWithManager(mgr, rateLimiter); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Second")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

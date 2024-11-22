@@ -119,6 +119,8 @@ func (r *SampleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, nil
 	}
 
+	logger.Info("[SampleReconciler]: Reconciling Sample CR", "name", objectInstance.Name)
+
 	// check if deletionTimestamp is set, retry until it gets deleted
 	status := getStatusFromSample(&objectInstance)
 
