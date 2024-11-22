@@ -20,9 +20,11 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/go-logr/logr"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
@@ -120,6 +122,9 @@ func (r *SampleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	logger.Info("[SampleReconciler]: Reconciling Sample CR", "name", objectInstance.Name)
+
+	// wait for random time [1, 100] ms
+	time.Sleep(time.Duration(1+rand.Intn(100)) * time.Millisecond) //nolint:gosec,mnd // pseduo-random sleep time
 
 	// check if deletionTimestamp is set, retry until it gets deleted
 	status := getStatusFromSample(&objectInstance)

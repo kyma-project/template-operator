@@ -19,7 +19,9 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"strconv"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -81,6 +83,9 @@ func (r *SecondReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	}
 
 	logger.Info("[SecondReconciler]: Reconciling Sample CR", "name", objectInstance.Name)
+
+	// wait for random time [1, 10] ms
+	time.Sleep(time.Duration(1+rand.Intn(10)) * time.Millisecond) //nolint:gosec,mnd // pseduo-random sleep time
 
 	// check if deletionTimestamp is set, retry until it gets deleted
 	status := getStatusFromSample(&objectInstance)
