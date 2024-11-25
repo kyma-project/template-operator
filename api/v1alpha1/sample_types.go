@@ -50,7 +50,6 @@ var (
 type SampleStatus struct {
 	Status `json:",inline"`
 
-
 	//+listType=map
 	//+listMapKey=type
 	//

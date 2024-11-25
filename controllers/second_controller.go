@@ -29,7 +29,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/kyma-project/template-operator/api/v1alpha1"
@@ -93,13 +92,6 @@ func (r *SecondReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// set state to FinalDeletionState (default is Deleting) if not set for an object with deletion timestamp
 	if !objectInstance.GetDeletionTimestamp().IsZero() && status.State != r.FinalDeletionState {
 		return ctrl.Result{}, r.setStatusForObjectInstance(ctx, &objectInstance, status.WithState(r.FinalDeletionState))
-	}
-
-	if objectInstance.GetDeletionTimestamp().IsZero() {
-		// add finalizer if not present
-		if controllerutil.AddFinalizer(&objectInstance, finalizer) {
-			return ctrl.Result{}, r.ssa(ctx, &objectInstance)
-		}
 	}
 
 	switch status.State {
@@ -185,16 +177,6 @@ func (r *SecondReconciler) ssaStatus(ctx context.Context, obj client.Object) err
 	if err := r.Status().Patch(ctx, obj, client.Apply,
 		&client.SubResourcePatchOptions{PatchOptions: client.PatchOptions{FieldManager: "sample.kyma-project.io/secondowner"}}); err != nil {
 		return fmt.Errorf("error while patching status: %w", err)
-	}
-	return nil
-}
-
-// ssa patches the object using SSA.
-func (r *SecondReconciler) ssa(ctx context.Context, obj client.Object) error {
-	obj.SetManagedFields(nil)
-	obj.SetResourceVersion("")
-	if err := r.Patch(ctx, obj, client.Apply, client.ForceOwnership, client.FieldOwner("sample.kyma-project.io/secondowner")); err != nil {
-		return fmt.Errorf("error while patching object: %w", err)
 	}
 	return nil
 }
