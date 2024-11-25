@@ -50,6 +50,10 @@ var (
 type SampleStatus struct {
 	Status `json:",inline"`
 
+
+	//+listType=map
+	//+listMapKey=type
+	//
 	// Conditions contain a set of conditionals to determine the State of Status.
 	// If all Conditions are met, State is expected to be in StateReady.
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
