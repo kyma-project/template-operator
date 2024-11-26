@@ -308,10 +308,25 @@ func (r *SampleReconciler) HandleReadyState(ctx context.Context, objectInstance 
 		WithDivisibleByFiveConditionStatus(divisibleByFiveCondition, objectInstance.GetGeneration()))
 }
 
+func filterConditions(conditions []metav1.Condition, predicate func(string) bool) []metav1.Condition {
+	filteredConditions := make([]metav1.Condition, 0)
+	for _, condition := range conditions {
+		if predicate(condition.Type) {
+			filteredConditions = append(filteredConditions, condition)
+		}
+	}
+	return filteredConditions
+}
+
 func (r *SampleReconciler) setStatusForObjectInstance(ctx context.Context, objectInstance *v1alpha1.Sample,
 	status *v1alpha1.SampleStatus,
 ) error {
 	objectInstance.Status = *status
+
+	// limit the conditions to only the ones that <this> controller manages (i.e. not the ones from other controllers)
+	objectInstance.Status.Conditions = filterConditions(objectInstance.Status.Conditions, func(conditionType string) bool {
+		return conditionType != v1alpha1.ConditionTypeDivisibleByThree
+	})
 
 	if err := r.ssaStatus(ctx, objectInstance); err != nil {
 		r.Event(objectInstance, "Warning", "ErrorUpdatingStatus",
