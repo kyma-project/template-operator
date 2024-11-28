@@ -20,8 +20,11 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"math/rand"
 	"os"
 	"path/filepath"
+	"strconv"
+	"time"
 
 	"github.com/go-logr/logr"
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
@@ -118,6 +121,11 @@ func (r *SampleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, nil
 	}
 
+	logger.Info("[SampleReconciler]: Reconciling Sample CR", "name", objectInstance.Name)
+
+	// wait for random time [1, 100] ms
+	time.Sleep(time.Duration(1+rand.Intn(100)) * time.Millisecond) //nolint:gosec,mnd // pseduo-random sleep time
+
 	// check if deletionTimestamp is set, retry until it gets deleted
 	status := getStatusFromSample(&objectInstance)
 
@@ -155,7 +163,9 @@ func (r *SampleReconciler) HandleInitialState(ctx context.Context, objectInstanc
 
 	return r.setStatusForObjectInstance(ctx, objectInstance, status.
 		WithState(v1alpha1.StateProcessing).
-		WithInstallConditionStatus(metav1.ConditionUnknown, objectInstance.GetGeneration()))
+		WithInstallConditionStatus(metav1.ConditionUnknown, objectInstance.GetGeneration()).
+		WithDivisibleByTwoConditionStatus(metav1.ConditionUnknown, objectInstance.GetGeneration()).
+		WithDivisibleByFiveConditionStatus(metav1.ConditionUnknown, objectInstance.GetGeneration()))
 }
 
 // HandleProcessingState processes the reconciled resource by processing the underlying resources.
@@ -173,10 +183,29 @@ func (r *SampleReconciler) HandleProcessingState(ctx context.Context, objectInst
 			WithState(v1alpha1.StateError).
 			WithInstallConditionStatus(metav1.ConditionFalse, objectInstance.GetGeneration()))
 	}
+
+	someNumberStr := objectInstance.Spec.SomeNumber
+	divisibleByTwoCondition := metav1.ConditionFalse
+	divisibleByFiveCondition := metav1.ConditionFalse
+
+	if someNumberStr != "" {
+		someNumber, err := strconv.Atoi(someNumberStr)
+		if err == nil {
+			if someNumber%2 == 0 {
+				divisibleByTwoCondition = metav1.ConditionTrue
+			}
+			if someNumber%5 == 0 {
+				divisibleByFiveCondition = metav1.ConditionTrue
+			}
+		}
+	}
+
 	// set eventual state to Ready - if no errors were found
 	return r.setStatusForObjectInstance(ctx, objectInstance, status.
 		WithState(r.FinalState).
-		WithInstallConditionStatus(metav1.ConditionTrue, objectInstance.GetGeneration()))
+		WithInstallConditionStatus(metav1.ConditionTrue, objectInstance.GetGeneration()).
+		WithDivisibleByTwoConditionStatus(divisibleByTwoCondition, objectInstance.GetGeneration()).
+		WithDivisibleByFiveConditionStatus(divisibleByFiveCondition, objectInstance.GetGeneration()))
 }
 
 // HandleErrorState handles error recovery for the reconciled resource.
@@ -256,13 +285,48 @@ func (r *SampleReconciler) HandleReadyState(ctx context.Context, objectInstance 
 			WithState(v1alpha1.StateError).
 			WithInstallConditionStatus(metav1.ConditionFalse, objectInstance.GetGeneration()))
 	}
-	return nil
+
+	someNumberStr := objectInstance.Spec.SomeNumber
+	divisibleByTwoCondition := metav1.ConditionFalse
+	divisibleByFiveCondition := metav1.ConditionFalse
+
+	if someNumberStr != "" {
+		someNumber, err := strconv.Atoi(someNumberStr)
+		if err == nil {
+			if someNumber%2 == 0 {
+				divisibleByTwoCondition = metav1.ConditionTrue
+			}
+			if someNumber%5 == 0 {
+				divisibleByFiveCondition = metav1.ConditionTrue
+			}
+		}
+	}
+
+	// set eventual state to Ready - if no errors were found
+	return r.setStatusForObjectInstance(ctx, objectInstance, status.
+		WithDivisibleByTwoConditionStatus(divisibleByTwoCondition, objectInstance.GetGeneration()).
+		WithDivisibleByFiveConditionStatus(divisibleByFiveCondition, objectInstance.GetGeneration()))
+}
+
+func filterConditions(conditions []metav1.Condition, predicate func(string) bool) []metav1.Condition {
+	filteredConditions := make([]metav1.Condition, 0)
+	for _, condition := range conditions {
+		if predicate(condition.Type) {
+			filteredConditions = append(filteredConditions, condition)
+		}
+	}
+	return filteredConditions
 }
 
 func (r *SampleReconciler) setStatusForObjectInstance(ctx context.Context, objectInstance *v1alpha1.Sample,
 	status *v1alpha1.SampleStatus,
 ) error {
 	objectInstance.Status = *status
+
+	// limit the conditions to only the ones that <this> controller manages (i.e. not the ones from other controllers)
+	objectInstance.Status.Conditions = filterConditions(objectInstance.Status.Conditions, func(conditionType string) bool {
+		return conditionType != v1alpha1.ConditionTypeDivisibleByThree
+	})
 
 	if err := r.ssaStatus(ctx, objectInstance); err != nil {
 		r.Event(objectInstance, "Warning", "ErrorUpdatingStatus",

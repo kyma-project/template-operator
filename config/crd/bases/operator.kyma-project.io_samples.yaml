@@ -47,6 +47,8 @@ spec:
                   ResourceFilePath indicates the local dir path containing a .yaml or .yml,
                   with all required resources to be processed
                 type: string
+              someNumber:
+                type: string
             type: object
           status:
             properties:
@@ -122,6 +124,9 @@ spec:
                   - type
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
               state:
                 description: |-
                   State signifies current state of Module CR.
