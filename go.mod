@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/logr v1.4.2
 	github.com/kyma-project/template-operator/api v0.0.0-20241025084859-e28811b16f6b
 	github.com/onsi/ginkgo/v2 v2.22.0
-	github.com/onsi/gomega v1.36.0
+	github.com/onsi/gomega v1.36.1
 	golang.org/x/time v0.8.0
 	k8s.io/api v0.32.0
 	k8s.io/apimachinery v0.32.0
