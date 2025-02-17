@@ -2,7 +2,7 @@ module github.com/kyma-project/template-operator/api
 
 go 1.23.5
 
-require k8s.io/apimachinery v0.32.1
+require k8s.io/apimachinery v0.32.2
 
 require (
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
