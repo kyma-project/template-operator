@@ -1,8 +1,7 @@
 name: "Create release"
 
-env:
-  IMAGE_REPO: europe-docker.pkg.dev/kyma-project/prod/template-operator
-  CODE_REPOSITORY: kyma-project/template-operator
+permissions: { }
+
 on:
   workflow_dispatch:
     inputs:
@@ -14,6 +13,10 @@ on:
         description: "Changelog since"
         default: ""
         required: false
+
+env:
+  IMAGE_REPO: europe-docker.pkg.dev/kyma-project/prod/template-operator
+  CODE_REPOSITORY: kyma-project/template-operator
 
 jobs:
   validate-release:
