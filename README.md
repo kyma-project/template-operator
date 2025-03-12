@@ -5,7 +5,6 @@ This documentation and template serve as a reference for implementing a module o
 It utilizes the [kubebuilder](https://book.kubebuilder.io/) framework with some modifications to implement Kubernetes APIs for Custom Resource Definitions (CRDs).
 Additionally, it hides Kubernetes boilerplate code to develop fast and efficient control loops in Go.
 
-
 ## Contents
 - [Template Operator](#template-operator)
   - [Contents](#contents)
