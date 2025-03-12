@@ -33,7 +33,6 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     labels:
-      - "docker"
       - "area/dependency"
     schedule:
       interval: "daily"
