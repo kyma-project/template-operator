@@ -1,32 +1,29 @@
 [![REUSE status](https://api.reuse.software/badge/github.com/kyma-project/template-operator)](https://api.reuse.software/info/github.com/kyma-project/template-operator)
 
 # Template Operator
+
 This documentation and template serve as a reference for implementing a module operator for integration with [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager/tree/main/).
 It utilizes the [kubebuilder](https://book.kubebuilder.io/) framework with some modifications to implement Kubernetes APIs for Custom Resource Definitions (CRDs).
 Additionally, it hides Kubernetes boilerplate code to develop fast and efficient control loops in Go.
 
-
 ## Contents
+
 - [Template Operator](#template-operator)
   - [Contents](#contents)
   - [Understanding Module Development in Kyma](#understanding-module-development-in-kyma)
     - [Basic Principles](#basic-principles)
     - [Release Channels](#release-channels)
-    - [Comparison to Other Established Frameworks](#comparison-to-other-established-frameworks)
-      - [Operator Lifecycle Manager (OLM)](#operator-lifecycle-manager-olm)
-    - [Crossplane](#crossplane)
-  - [Implementation](#implementation)
+  - [Development](#development)
     - [Prerequisites](#prerequisites)
-    - [Generate kubebuilder operator](#generate-kubebuilder-operator)
+    - [Generate kubebuilder operator](#generate-the-kubebuilder-operator)
       - [Optional: Adjust the default config resources](#optional-adjust-the-default-config-resources)
-      - [API Ddefinition Steps](#api-ddefinition-steps)
+      - [API Definition Steps](#api-definition-steps)
       - [Controller Implementation Steps](#controller-implementation-steps)
-    - [Local Testing](#local-testing)
-  - [Bundling and Installation](#bundling-and-installation)
-    - [Grafana Dashboard for Simplified Controller Observability](#grafana-dashboard-for-simplified-controller-observability)
+    - [Local Testing](#local-testing) 
     - [Role-Based Access Control (RBAC)](#role-based-access-control-rbac)
     - [Prepare and Build Module Operator Image](#prepare-and-build-module-operator-image)
     - [Build and Push Your Module to the Registry](#build-and-push-your-module-to-the-registry)
+  - [Monitoring Dashboard](#monitoring-dashboard)
   - [Using Your Module in the Lifecycle Manager Ecosystem](#using-your-module-in-the-lifecycle-manager-ecosystem)
     - [Deploying Kyma Infrastructure Operators with `kyma alpha deploy`](#deploying-kyma-infrastructure-operators-with-kyma-alpha-deploy)
     - [Deploying ModuleTemplate into the Control Plane](#deploying-moduletemplate-into-the-control-plane)
@@ -36,7 +33,7 @@ Additionally, it hides Kubernetes boilerplate code to develop fast and efficient
   - [Code of Conduct](#code-of-conduct)
   - [Licensing](#licensing)
 
-## Understanding Module Development in Kyma 
+## Understanding Module Development in Kyma
 
 Before going in-depth, make sure you are familiar with:
 
@@ -47,6 +44,7 @@ This guide serves as a comprehensive step-by-step tutorial on properly creating 
 > **NOTE:** While other approaches are encouraged, there are no dedicated guides available yet. These will follow with sufficient requests and the adoption of Kyma modularization.
 
 ### Basic Principles
+
 Every Kyma module using the operator follows five basic principles:
 
 - Is declared as available for use in a release channel through the ModuleTemplate custom resource (CR) in Control Plane
@@ -56,61 +54,17 @@ Every Kyma module using the operator follows five basic principles:
 - Operates on at most one runtime at any given time
 
 ### Release Channels
+
 Release channels let the customers try new modules and features early and decide when to apply the updates. For more information, see the [release channels documentation in the modularization overview](https://github.com/kyma-project/community/tree/main/concepts/modularization#release-channels).
 
 The following rules apply to the channel naming:
+
 1. Lowercase letters from a to z.
 2. The total length is between 3 and 32 characters.
 
 If you are planning to migrate a pre-existing module within Kyma, read the [transition plan for existing modules](https://github.com/kyma-project/community/blob/main/concepts/modularization/transition.md).
 
-### Comparison to Other Established Frameworks
-
-#### Operator Lifecycle Manager (OLM)
-
-Compared to [OLM](https://olm.operatorframework.io/), modular Kyma differs in a few aspects.
-While OLM is built heavily around a static dependency expression, the Kyma modules are expected to resolve dependencies dynamically. This means that in OLM, a module must declare CRDs and APIs it depends on. In Kyma, all modules can depend on each other without declaring it in advance.
-This makes it harder to understand compared to a strict dependency graph, but it comes with a few key advantages:
-
-- Concurrent optimization on the controller level: every controller in Kyma is installed simultaneously and is not blocked from installation until other operators are available.
-This makes it easy to create or configure resources that do not need to wait for the dependency. For example, ConfigMap can be created even before a Deployment that must wait for an API to be present.
-While this forces controllers to include a case where the dependency is absent, we encourage eventual consistency and do not enforce a strict lifecycle model on the modules.
-- Discoverability is handled not through a registry or server but through a declarative configuration.
-Every module is installed through ModuleTemplate, which is semantically the same as registering an operator in an OLM registry or `CatalogSource`. 
-ModuleTemplate, however, is a normal CR and can be installed on Control Plane. 
-This allows multiple Control Planes to offer differing modules simply at configuration time.
-Also, we do not use file-based catalogs to maintain our catalog but maintain every ModuleTemplate through [Open Component Model](https://ocm.software/), an open standard to describe software artifact delivery.
-
-Regarding release channels for operators, Lifecycle Manager operates at the same level as OLM. However, with Kyma, we ensure the bundling of ModuleTemplate to a specific release channel.
-We are heavily inspired by the way that OLM handles release channels, but we do not use an intermediary Subscription that assigns the catalog to the channel. Instead, every module is already delivered in ModuleTemplate in a channel's ModuleTemplate.
-
-There is a distinct difference in the ModuleTemplate parts. 
-ModuleTemplate contains not only a specification of the operator to be installed through a dedicated layer. It also consists of a set of default values for a given channel when installed for the first time.
-When you install an operator from scratch using Kyma, the module is already initialized with a default set of values.
-However, when upgrading, Lifecycle Manager is not expected to update the values to new defaults. Instead, it is a way for module developers to prefill their operators with instructions based on a given environment (the channel).
-Note that these default values are static once installed, and are not updated unless a new module installation occurs, even when the content of ModuleTemplate changes.
-This is because a customer is expected to be able to change the settings of the module CR at any time without the Kyma ecosystem overriding it.
-Thus, the module CR can also be treated as a customer or runtime-facing API that allows us to offer typed configuration for multiple parts of Kyma.
-
-### Crossplane
-
-With [Crossplane](https://crossplane.io/), you are fundamentally allowing providers to interact with your Control Plane.
-The most similar aspect of the Crossplane lifecycle is that we also use opinionated OCI images to bundle our modules. 
-We use ModuleTemplate to reference our layers containing the necessary metadata to deploy our controllers, just like Crossplane.
-However, we do not speculate on the permissions of controllers and enforce stricter versioning guarantees, only allowing `semver` to be used for modules and `Digest` for the `sha` digests for individual layers of modules.
-
-Fundamentally different is also the way that `Providers` and `Composite Resources` work compared to the Kyma ecosystem.
-While Kyma allows any module to bring an individual CR into the cluster for configuration, a `Provider` in Crossplane is located in Control Plane and only directs installation targets.
-We handle this kind of data centrally through acquisition strategies for credentials and other centrally managed data in the Kyma CR. 
-Thus, it is most fitting to consider the Kyma ecosystem as a heavily opinionated `Composite Resource` from Crossplane, with the `Managed Resource` being tracked with the Lifecycle Manager manifest. 
-
-Compared to Crossplane, we also encourage the creation of our CRDs in place of the concept of the `Managed Resource`, and in the case of configuration, we can synchronize not only a desired state for all modules from Control Plane but also from the runtime.
-Similarly, we make the runtime module catalog discoverable from inside the runtime with a dedicated synchronization mechanism.
-
-Lastly, compared to Crossplane, we have fewer choices regarding revision management and dependency resolution.
-While in Crossplane, it is possible to define custom package, revision, and dependency policies, in Kyma, managed use cases usually require unified revision handling, and we do not target a generic solution for revision management of different module ecosystems.
-
-## Implementation
+## Development
 
 ### Prerequisites
 
@@ -135,7 +89,8 @@ Use one of the following options to install kubebuilder:
     chmod +x kubebuilder && mv kubebuilder /usr/local/bin/
     ```
 <!-- tabs:end -->
-* [Kyma CLI](https://storage.googleapis.com/kyma-cli-stable/kyma-darwin)
+
+* [Kyma CLI](https://storage.googleapis.com/kyma-cli-stable/kyma-darwin) <!--modulectl (link)-->
 * An OCI registry to host OCI image
   * Follow our [Provision cluster and OCI registry](https://github.com/kyma-project/lifecycle-manager/blob/main/docs/developer-tutorials/provision-cluster-and-registry.md) guide to create a local registry provided by k3d or use the [Google Container Registry (GCR)](https://github.com/kyma-project/lifecycle-manager/blob/main/docs/developer-tutorials/prepare-gcr-registry.md) guide for a remote registry.
 
@@ -156,6 +111,7 @@ Use one of the following options to install kubebuilder:
 4. Set up a basic kubebuilder operator with appropriate scaffolding.
 
 #### Optional: Adjust the Default Config Resources
+
 If the module operator is deployed under the same namespace with other operators, differentiate your resources by adding common labels.
 
 1. Add `commonLabels` to default `kustomization.yaml`. See [reference implementation](config/overlays/deployment/kustomization.yaml).
@@ -228,34 +184,21 @@ The Sample CR is reconciled to install or uninstall a list of rendered resources
    WithState(v1alpha1.StateReady).
    WithInstallConditionStatus(metav1.ConditionTrue, objectInstance.GetGeneration()))
    ```
-    
+
 3. The reference controller implementations listed above use [Server-Side Apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) instead of conventional methods to process resources on the target cluster.
 You can leverage parts of this logic to implement your own controller logic. Check out functions inside these controllers for state management and other implementation details.
 
 ### Local Testing
-* Connect to your cluster and ensure kubectl is pointing to the desired cluster.
-* Install CRDs with `make install`
+
+1. Connect to your cluster and ensure kubectl is pointing to the desired cluster.
+2. Install CRDs with `make install`
 **WARNING:** This installs a CRD on your cluster, so create your cluster before running the `install` command. See [Prerequisites](#prerequisites) for details on the cluster setup.
-* _Local setup_: install your module CR on a cluster and execute `make run` to start your operator locally.
+3. _Local setup_: install your module CR on a cluster and execute `make run` to start your operator locally.
 
 > **WARNING:** Note that while `make run` fully runs your controller against the cluster, it is not feasible to compare it to a productive operator. This is mainly because it runs with a client configured with privileges derived from your `KUBECONFIG` environment variable. For in-cluster configuration, see [Guide on RBAC Management](#rbac).
 
-## Bundling and Installation
-
-### Grafana Dashboard for Simplified Controller Observability
-
-You can extend the operator further by using automated dashboard generation for Grafana.
-
-Use the following command to generate two Grafana dashboard files with the controller-related metrics in the `/grafana` folder:
-
-```shell
-kubebuilder edit --plugins grafana.kubebuilder.io/v1-alpha
-```
-
-To import Grafana dashboard, read the [official Grafana guide](https://grafana.com/docs/grafana/latest/dashboards/export-import/#import-dashboard).
-This feature is supported by the [kubebuilder Grafana plugin](https://book.kubebuilder.io/plugins/grafana-v1-alpha.html).
-
 ### Role-Based Access Control (RBAC)
+
 Ensure you have appropriate authorizations assigned to your controller binary before running it inside a cluster (not locally with `make run`).
 The Sample CR [controller implementation](controllers/sample_controller_rendered_resources.go) includes RBAC generation (via kubebuilder) for all resources across all API groups.
 Adjust it according to the chart manifest resources and reconciliation types.
@@ -298,30 +241,34 @@ Assuming your operator image has the following base settings:
 * controller image has version `0.0.1`
 
 you can run the following command:
+
    ```sh
    make docker-build docker-push IMG="op-kcp-registry.localhost:8888/unsigned/operator-images/sample-operator:0.0.1"
    ```
-   
+
 This builds the controller image and then pushes it as the image defined in `IMG` based on the kubebuilder targets.
 
-### Build and Push Your Module to the Registry
+### Build and Push Your Module to the Registry 
+<!-- rewrite using modulectl instead of Kyma CLI-->
 
 > **WARNING:** This step requires the working OCI Registry, cluster, and Kyma CLI. See [Prerequisites](#prerequisites).
 
 1. Generate the CRDs and resources for the module from the `default` kustomization into a manifest file using the following command:
+
    ```shell
    make build-manifests
    ```
+
 You can use this file as a manifest for the module configuration in the next step.
-   
+
 Furthermore, make sure the settings from [Prepare and Build Module Operator Image](#prepare-and-build-module-operator-image) for single-cluster mode, and the following module settings are applied:
 * is hosted at `op-kcp-registry.localhost:8888/unsigned`
 * for a k3d registry, the `insecure` flag (`http` instead of `https` for registry communication) is enabled
 * Kyma CLI in `$PATH` under `kyma` is used
 * the default sample under `config/samples/operator.kyma-project.io_v1alpha1_sample.yaml` has been adjusted to be a valid CR
 
-> **WARNING:** The settings above reflect your default configuration for a module. To change them, adjust them manually to a different configuration. 
-You can also define multiple files in `config/samples`, but you must specify the correct file during the bundling.
+   > **WARNING:** The settings above reflect your default configuration for a module. To change them, adjust them manually to a different configuration. 
+   You can also define multiple files in `config/samples`, but you must specify the correct file during the bundling.
 
 * `.gitignore` has been adjusted and the following ignores have been added
 
@@ -331,7 +278,7 @@ You can also define multiple files in `config/samples`, but you must specify the
    # template generated by kyma create module
      template.yaml
    ```
-   
+
 2. To configure the module, adjust the file `module-config.yaml`, located at the root of the repository.
  
    The following fields are available for the configuration of the module:
@@ -348,7 +295,7 @@ You can also define multiple files in `config/samples`, but you must specify the
    - `labels`: (Optional) Additional labels for ModuleTemplate.
    - `annotations`: (Optional) Additional annotations for ModuleTemplate.
    - `customStateCheck`: (Optional) [DEPRECATED] Specifies custom state checks for the module.
-   
+
    > **CAUTION:** This field was deprecated at the end of July 2024 and will be deleted in the next [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager/tree/main/) API versions. 
 
    An example configuration:
@@ -416,7 +363,21 @@ You can also define multiple files in `config/samples`, but you must specify the
    
 The CLI created various layers that are referenced in the `blobs` directory. For more information on the layer structure, check the module creation with `kyma alpha mod create --help`.
 
-## Using Your Module in the Lifecycle Manager Ecosystem
+## Monitoring Dashboard
+
+You can extend the operator further by using automated dashboard generation for Grafana.
+
+Use the following command to generate two Grafana dashboard files with the controller-related metrics in the `/grafana` folder:
+
+```shell
+kubebuilder edit --plugins grafana.kubebuilder.io/v1-alpha
+```
+
+To import Grafana dashboard, read the [official Grafana guide](https://grafana.com/docs/grafana/latest/dashboards/export-import/#import-dashboard).
+This feature is supported by the [kubebuilder Grafana plugin](https://book.kubebuilder.io/plugins/grafana-v1-alpha.html).
+
+## Using Your Module in the Lifecycle Manager Ecosystem 
+<!-- Move to a diffrent location, for example Lifecycle Managwer and rewrite to use modulectl instead of Kyma CLI-->
 
 ### Deploying Kyma Infrastructure Operators with `kyma alpha deploy`
 

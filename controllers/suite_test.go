@@ -50,7 +50,6 @@ var (
 )
 
 const (
-	testChartPath               = "./test/busybox"
 	rateLimiterBurstDefault     = 200
 	rateLimiterFrequencyDefault = 30
 	failureBaseDelayDefault     = 1 * time.Second

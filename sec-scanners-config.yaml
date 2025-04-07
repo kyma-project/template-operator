@@ -1,14 +1,15 @@
 module-name: template-operator
-rc-tag: 1.0.1
-dev-branch: main
 kind: kyma
-checkmarxOne:
-  checkmarx_preset: golang
-protecode:
+checkmarx-one:
+  preset: go-default
+  exclude:
+    - "**/test/**"
+    - "**/*_test.go"
+bdba:
   - europe-docker.pkg.dev/kyma-project/prod/template-operator:1.0.1
-whitesource:
+  - europe-docker.pkg.dev/kyma-project/prod/template-operator:latest
+mend:
   language: golang-mod
-  subprojects: false
   exclude:
     - "**/test/**"
     - "**/*_test.go"
