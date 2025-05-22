@@ -107,11 +107,11 @@ func (r *SampleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	objectInstance := v1alpha1.Sample{}
 
-	if err := r.Client.Get(ctx, req.NamespacedName, &objectInstance); err != nil {
+	if err := r.Get(ctx, req.NamespacedName, &objectInstance); err != nil {
 		// we'll ignore not-found errors, since they can't be fixed by an immediate
 		// requeue (we'll need to wait for a new notification), and we can get them
 		// on deleted requests.
-		logger.Info(req.NamespacedName.String() + " got deleted!")
+		logger.Info(req.String() + " got deleted!")
 		if client.IgnoreNotFound(err) != nil {
 			return ctrl.Result{}, fmt.Errorf("error while getting object: %w", err)
 		}
@@ -207,7 +207,7 @@ func (r *SampleReconciler) HandleDeletingState(ctx context.Context, objectInstan
 	resourceObjs, err := getResourcesFromLocalPath(objectInstance.Spec.ResourceFilePath, logger)
 	if err != nil && controllerutil.RemoveFinalizer(objectInstance, finalizer) {
 		// if error is encountered simply remove the finalizer and delete the reconciled resource
-		if err := r.Client.Update(ctx, objectInstance); err != nil {
+		if err := r.Update(ctx, objectInstance); err != nil {
 			return fmt.Errorf("error while removing finalizer: %w", err)
 		}
 		return nil
@@ -217,7 +217,7 @@ func (r *SampleReconciler) HandleDeletingState(ctx context.Context, objectInstan
 	// the resources to be installed are unstructured,
 	// so please make sure the types are available on the target cluster
 	for _, obj := range resourceObjs.Items {
-		if err = r.Client.Delete(ctx, obj); err != nil && !errors2.IsNotFound(err) {
+		if err = r.Delete(ctx, obj); err != nil && !errors2.IsNotFound(err) {
 			// stay in Deleting state if FinalDeletionState is set to Deleting
 			if !objectInstance.GetDeletionTimestamp().IsZero() && r.FinalDeletionState == v1alpha1.StateDeleting {
 				return nil
@@ -233,7 +233,7 @@ func (r *SampleReconciler) HandleDeletingState(ctx context.Context, objectInstan
 
 	// if resources are ready to be deleted, remove finalizer
 	if controllerutil.RemoveFinalizer(objectInstance, finalizer) {
-		if err := r.Client.Update(ctx, objectInstance); err != nil {
+		if err := r.Update(ctx, objectInstance); err != nil {
 			return fmt.Errorf("error while removing finalizer: %w", err)
 		}
 		return nil
