@@ -9,14 +9,13 @@ set -o pipefail
 RELEASE_VERSION=$1
 PREVIOUS_RELEASE=$2
 
-
 if [ "${PREVIOUS_RELEASE}"  == "" ]
 then
   PREVIOUS_RELEASE=$(git describe --tags --abbrev=0)
 fi
 
 GITHUB_URL=https://api.github.com/repos/${CODE_REPOSITORY}
-GITHUB_AUTH_HEADER="Authorization: token ${GITHUB_TOKEN}"
+GITHUB_AUTH_HEADER="Authorization: Bearer ${GITHUB_TOKEN}"
 CHANGELOG_FILE="CHANGELOG.md"
 
 echo "## What has changed" >> ${CHANGELOG_FILE}
@@ -48,6 +47,6 @@ then
   done <${NEW_CONTRIB}
 fi
 
-echo -e "\n**Full changelog**: https://github.com/$REPOSITORY/compare/${PREVIOUS_RELEASE}...${RELEASE_VERSION}" >> ${CHANGELOG_FILE}
+echo -e "\n**Full changelog**: ${GITHUB_URL}/compare/${PREVIOUS_RELEASE}...${RELEASE_VERSION}" >> ${CHANGELOG_FILE}
 
 rm ${NEW_CONTRIB} || echo "cleaned up"
