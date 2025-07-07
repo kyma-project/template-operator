@@ -27,8 +27,10 @@ uploadFile() {
 
 echo "PULL_BASE_REF= ${PULL_BASE_REF}"
 
+cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 MODULE_VERSION=${PULL_BASE_REF} make build-manifests
 echo "Generated template-operator.yaml:"
+
 cat template-operator.yaml
 
 echo "Fetching releases"

@@ -62,6 +62,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PULL_BASE_REF: ${{ github.event.inputs.name }}
+          IMG: ${{ env.IMAGE_REPO }}:${{ github.event.inputs.name }}
         run: ./.github/scripts/release/upload_assets.sh
     outputs:
       release_id: ${{ steps.draft-release.outputs.release_id }}
