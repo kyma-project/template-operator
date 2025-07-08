@@ -177,6 +177,11 @@ configure-git-origin:
 build-manifests: manifests kustomize
 	$(KUSTOMIZE) build config/overlays/deployment > template-operator.yaml
 
+.PHONY: publish-manifests
+publish-manifests: manifests kustomize
+	(cd config/manager/deployment && $(KUSTOMIZE) edit set image controller=${IMG})
+	$(KUSTOMIZE) build config/overlays/deployment > template-operator.yaml
+
 .PHONY: build-statefulset-manifests
 build-statefulset-manifests: manifests kustomize
 	$(KUSTOMIZE) build config/overlays/statefulset > template-operator.yaml
