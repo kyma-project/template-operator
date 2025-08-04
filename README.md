@@ -25,7 +25,6 @@ Additionally, it hides Kubernetes boilerplate code to develop fast and efficient
     - [Build and Push Your Module to the Registry](#build-and-push-your-module-to-the-registry)
   - [Monitoring Dashboard](#monitoring-dashboard)
   - [Using Your Module in the Lifecycle Manager Ecosystem](#using-your-module-in-the-lifecycle-manager-ecosystem)
-    - [Deploying Kyma Infrastructure Operators with `kyma alpha deploy`](#deploying-kyma-infrastructure-operators-with-kyma-alpha-deploy)
     - [Deploying ModuleTemplate into the Control Plane](#deploying-moduletemplate-into-the-control-plane)
     - [Debugging the Operator Ecosystem](#debugging-the-operator-ecosystem)
     - [Registering your Module Within the Control Plane](#registering-your-module-within-the-control-plane)
@@ -92,7 +91,7 @@ Use one of the following options to install kubebuilder:
 
 * [modulectl](https://github.com/kyma-project/modulectl/releases)
 * An OCI registry to host OCI image
-  * Follow our [Provision cluster and OCI registry](https://github.com/kyma-project/lifecycle-manager/blob/main/docs/developer-tutorials/provision-cluster-and-registry.md) guide to create a local registry provided by k3d or use the [Google Container Registry (GCR)](https://github.com/kyma-project/lifecycle-manager/blob/main/docs/developer-tutorials/prepare-gcr-registry.md) guide for a remote registry.
+  * You can use a local registry provided by k3d or use the Google Container Registry (GCR).
 
 ### Generate the kubebuilder Operator
 
@@ -195,7 +194,7 @@ You can leverage parts of this logic to implement your own controller logic. Che
 **WARNING:** This installs a CRD on your cluster, so create your cluster before running the `install` command. See [Prerequisites](#prerequisites) for details on the cluster setup.
 3. _Local setup_: install your module CR on a cluster and execute `make run` to start your operator locally.
 
-> **WARNING:** Note that while `make run` fully runs your controller against the cluster, it is not feasible to compare it to a productive operator. This is mainly because it runs with a client configured with privileges derived from your `KUBECONFIG` environment variable. For in-cluster configuration, see [Guide on RBAC Management](#rbac).
+> **WARNING:** Note that while `make run` fully runs your controller against the cluster, it is not feasible to compare it to a productive operator. This is mainly because it runs with a client configured with privileges derived from your `KUBECONFIG` environment variable. For in-cluster configuration, see [Guide on RBAC Management](#role-based-access-control-rbac).
 
 ### Role-Based Access Control (RBAC)
 
@@ -248,7 +247,7 @@ you can run the following command:
 
 This builds the controller image and then pushes it as the image defined in `IMG` based on the kubebuilder targets.
 
-### Build and Push Your Module to the Registry 
+### Build and Push Your Module to the Registry
 
 > **WARNING:** This step requires the working OCI Registry, cluster, and Kyma CLI. See [Prerequisites](#prerequisites).
 
@@ -427,39 +426,7 @@ kubebuilder edit --plugins grafana.kubebuilder.io/v1-alpha
 ```
 
 To import Grafana dashboard, read the [official Grafana guide](https://grafana.com/docs/grafana/latest/dashboards/export-import/#import-dashboard).
-This feature is supported by the [kubebuilder Grafana plugin](https://book.kubebuilder.io/plugins/grafana-v1-alpha.html).
-
-## Using Your Module in the Lifecycle Manager Ecosystem 
-<!-- Move to a diffrent location, for example Lifecycle Managwer and rewrite to use modulectl instead of Kyma CLI-->
-
-### Deploying ModuleTemplate into the Control Plane
-
-Run the command for creating ModuleTemplate in your cluster.
-After this the module will be available for consumption based on the module name configured with the label `operator.kyma-project.io/module-name` in ModuleTemplate.
-
-> **WARNING:** Depending on your setup against either a k3d cluster or registry, you must run the script `/scripts/patch_local_template.sh` before pushing ModuleTemplate to have the proper registry setup.
-This is necessary for k3d clusters due to port-mapping issues in the cluster that the operators cannot reuse. Take a look at the [relevant issue for more details](https://github.com/kyma-project/module-manager/issues/136#issuecomment-1279542587).
-
-   ```sh
-   kubectl apply -f template.yaml
-   ```
-
-You can use the following command to enable the module you created:
-
-   ```shell
-   kyma alpha enable module <module-identifier> -c <channel>
-   ```
-
-This adds your module to `.spec.modules` with a name originally based on the `"operator.kyma-project.io/module-name": "sample"` label generated in `template.yaml`:
-
-   ```yaml
-   spec:
-     modules:
-     - name: sample
-   ```
-
-If required, you can adjust this Kyma CR based on your testing scenario. For example, if you are running a dual-cluster setup, you might want to enable the synchronization of the Kyma CR into the runtime cluster for a full E2E setup.
-When creating this Kyma CR in your Control Plane cluster, installation of the specified modules should start immediately.
+This feature is supported by the [kubebuilder Grafana plugin](https://book.kubebuilder.io/plugins/available/grafana-v1-alpha).
 
 ### Debugging the Operator Ecosystem
 
