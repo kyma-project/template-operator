@@ -24,10 +24,8 @@ Additionally, it hides Kubernetes boilerplate code to develop fast and efficient
     - [Prepare and Build Module Operator Image](#prepare-and-build-module-operator-image)
     - [Build and Push Your Module to the Registry](#build-and-push-your-module-to-the-registry)
   - [Monitoring Dashboard](#monitoring-dashboard)
-  - [Using Your Module in the Lifecycle Manager Ecosystem](#using-your-module-in-the-lifecycle-manager-ecosystem)
-    - [Deploying ModuleTemplate into the Control Plane](#deploying-moduletemplate-into-the-control-plane)
-    - [Debugging the Operator Ecosystem](#debugging-the-operator-ecosystem)
-    - [Registering your Module Within the Control Plane](#registering-your-module-within-the-control-plane)
+  - [Debugging the Operator Ecosystem](#debugging-the-operator-ecosystem)
+  - [Registering your Module Within the Control Plane](#registering-your-module-within-the-control-plane)
   - [Contributing](#contributing)
   - [Code of Conduct](#code-of-conduct)
   - [Licensing](#licensing)
@@ -428,7 +426,7 @@ kubebuilder edit --plugins grafana.kubebuilder.io/v1-alpha
 To import Grafana dashboard, read the [official Grafana guide](https://grafana.com/docs/grafana/latest/dashboards/export-import/#import-dashboard).
 This feature is supported by the [kubebuilder Grafana plugin](https://book.kubebuilder.io/plugins/available/grafana-v1-alpha).
 
-### Debugging the Operator Ecosystem
+## Debugging the Operator Ecosystem
 
 The operator ecosystem around Kyma is complex, and it might become troublesome to debug issues in case your module is not installed correctly.
 For this reason, here are some best practices on how to debug modules developed using this guide.
@@ -451,7 +449,7 @@ For cluster provisioning, make sure to follow the recommendations for clusters m
 
 Lastly, if you are still unsure, [open an issue](https://github.com/kyma-project/template-operator/issues/new/choose) with a description and steps to reproduce. We will be happy to help you with a solution.
 
-### Registering your Module Within the Control Plane
+## Registering your Module Within the Control Plane
 
 For global usage of your module, the generated `template.yaml` from [Build and Push your Module to the Registry](#build-and-push-your-module-to-the-registry) must be registered in our Control Plane.
 This relates to [Phase 2 of the module transition plane](https://github.com/kyma-project/community/blob/main/concepts/modularization/transition.md#phase-2---first-module-managed-by-kyma-operator-integrated-with-keb). Please be patient until we provide you with a stable guide on integrating your `template.yaml` properly with an automated test flow into the central Control Plane offering.
