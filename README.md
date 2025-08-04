@@ -90,7 +90,7 @@ Use one of the following options to install kubebuilder:
     ```
 <!-- tabs:end -->
 
-* [Kyma CLI](https://storage.googleapis.com/kyma-cli-stable/kyma-darwin) <!--modulectl (link)-->
+* [modulectl](https://github.com/kyma-project/modulectl/releases)
 * An OCI registry to host OCI image
   * Follow our [Provision cluster and OCI registry](https://github.com/kyma-project/lifecycle-manager/blob/main/docs/developer-tutorials/provision-cluster-and-registry.md) guide to create a local registry provided by k3d or use the [Google Container Registry (GCR)](https://github.com/kyma-project/lifecycle-manager/blob/main/docs/developer-tutorials/prepare-gcr-registry.md) guide for a remote registry.
 
@@ -249,7 +249,6 @@ you can run the following command:
 This builds the controller image and then pushes it as the image defined in `IMG` based on the kubebuilder targets.
 
 ### Build and Push Your Module to the Registry 
-<!-- rewrite using modulectl instead of Kyma CLI-->
 
 > **WARNING:** This step requires the working OCI Registry, cluster, and Kyma CLI. See [Prerequisites](#prerequisites).
 
@@ -264,7 +263,7 @@ You can use this file as a manifest for the module configuration in the next ste
 Furthermore, make sure the settings from [Prepare and Build Module Operator Image](#prepare-and-build-module-operator-image) for single-cluster mode, and the following module settings are applied:
 * is hosted at `op-kcp-registry.localhost:8888/unsigned`
 * for a k3d registry, the `insecure` flag (`http` instead of `https` for registry communication) is enabled
-* Kyma CLI in `$PATH` under `kyma` is used
+* modulectl in `$PATH` under `moduletcl` is used
 * the default sample under `config/samples/operator.kyma-project.io_v1alpha1_sample.yaml` has been adjusted to be a valid CR
 
    > **WARNING:** The settings above reflect your default configuration for a module. To change them, adjust them manually to a different configuration. 
@@ -284,84 +283,138 @@ Furthermore, make sure the settings from [Prepare and Build Module Operator Imag
    The following fields are available for the configuration of the module:
    - `name`: (Required) The name of the module.
    - `version`: (Required) The version of the module.
-   - `channel`: (Required) The channel that must be used in ModuleTemplate. Must be a valid Kyma state.
-   - `manifest`: (Required) The relative path to the manifest file (generated in the first step).
-   - `defaultCR`: (Optional) The relative path to a YAML file containing the default CR for the module.
-   - `resourceName`: (Optional) The name for ModuleTemplate that is created.
-   - `namespace`: (Optional) The namespace where ModuleTemplate is deployed.
-   - `security`: (Optional) The name of the security scanners configuration file.
-   - `internal`: (Optional) Determines whether ModuleTemplate must have the internal flag or not. The type is bool.
-   - `beta`: (Optional) Determines whether ModuleTemplate must have the beta flag or not. The type is bool.
-   - `labels`: (Optional) Additional labels for ModuleTemplate.
-   - `annotations`: (Optional) Additional annotations for ModuleTemplate.
-   - `customStateCheck`: (Optional) [DEPRECATED] Specifies custom state checks for the module.
+   - `manifest`: (Required) Reference to the manifest, must be a URL or a local file path.
+   - `repository`: (Required) Reference to the repository, must be a URL.
+   - `documentation`: (Required) Reference to the documentation, must be a URL.
+   - `icons`: (Required) Icons used for UI.
+   - `defaultCR`: (Optional) Reference to a YAML file containing the default CR for the module, must be a URL or a local file path.
+   - `mandatory`: (Optional) Default=false, indicates whether the module is mandatory to be installed on all clusters.
+   - `security`: (Optional) Reference to a YAML file containing the security scanners config, must be a local file path.
+   - `labels`: (Optional) Additional labels for the generated ModuleTemplate CR.
+   - `annotations`: (Optional) Additional annotations for the generated ModuleTemplate CR.
+   - `manager`: (Optional) Module resource that indicates the installation readiness of the module, typically the manager deployment of the module.
+   - `associatedResources`: (Optional) Resources that should be cleaned up with the module deletion.
+   - `resources`: (Optional) Additional resources of the module that may be fetched.
+   - `requiresDowntime`: (Optional) Default=false, indicates whether the module requires downtime to support maintenance windows during module upgrades.
+   - `namespace`: (Optional) Default=kcp-system, the namespace where the ModuleTemplate will be deployed.
+   - `internal`: (Optional) Default=false, indicates whether the module is internal.
+   - `beta`: (Optional) Default=false, indicates whether the module is beta.
 
-   > **CAUTION:** This field was deprecated at the end of July 2024 and will be deleted in the next [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager/tree/main/) API versions. 
+   >      **CAUTION:** This field was deprecated at the end of July 2024 and will be deleted in the next [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager/tree/main/) API versions. 
 
-   An example configuration:
+      An example configuration:
 
-   ```yaml
-   name: kyma-project.io/module/template-operator
-   version: v1.0.0
-   channel: regular
-   manifest: template-operator.yaml
-   ```
+      ```yaml
+      name: kyma-project.io/module/template-operator
+      version: v1.0.0
+      channel: regular
+      manifest: template-operator.yaml
+      ```
 3. Run the following command to create the module configured in `module-config.yaml` and push your module operator image to the specified registry:
 
    ```sh
-   kyma alpha create module --insecure --registry op-kcp-registry.localhost:8888/unsigned --module-config-file module-config.yaml 
+   modulectl create --insecure --registry op-kcp-registry.localhost:8888/unsigned --module-config-file module-config.yaml 
    ```
    
 > **WARNING:** For external registries (for example, Google Container/Artifact Registry) never use `insecure`. Instead, specify credentials. You can find more details in the CLI help documentation.
    
-1. Verify that the module creation succeeded and observe the generated `template.yaml` file. It will contain the ModuleTemplate CR and descriptor of the component under `spec.descriptor.component`.   
+4. Verify that the module creation succeeded and observe the generated `template.yaml` file. It will contain the ModuleTemplate CR and descriptor of the component under `spec.descriptor.component`.   
 
    ```yaml
-   component:
-     componentReferences: []
-     labels:
-     - name: security.kyma-project.io/scan
-       value: enabled
-       version: v1
-     name: kyma-project.io/module/template-operator
-     provider: internal
-     repositoryContexts:
-     - baseUrl: http://op-kcp-registry.localhost:8888/unsigned
-       componentNameMapping: urlPath
-       type: ociRegistry
-     resources:
-     - access:
-         digest: sha256:d008309948bd08312016731a9c528438e904a71c05a110743f5a151f0c3c4a9e
-         type: localOciBlob
-       name: raw-manifest
-       relation: local
-       type: yaml
-       version: v1.0.0
-     sources:
-     - access:
-         commit: 4f2ae6474ea7ababf9be246abe74b40f1baf1121
-         repoUrl: https://github.com/LeelaChacha/kyma-cli.git
-         type: gitHub
-       labels:
-       - name: git.kyma-project.io/ref
-         value: refs/heads/feature/#90-update-build-instructions
-         version: v1
-       - name: scan.security.kyma-project.io/language
-         value: golang-mod
-         version: v1
-       - name: scan.security.kyma-project.io/subprojects
-         value: "false"
-         version: v1
-       - name: scan.security.kyma-project.io/exclude
-         value: '**/test/**,**/*_test.go'
-         version: v1
-       name: module-sources
-       type: git
-       version: v1.0.0
-     version: v1.0.0
+    component:
+      componentReferences: []
+      labels:
+      - name: security.kyma-project.io/scan
+        value: enabled
+        version: v1
+      name: kyma-project.io/module/template-operator
+      provider: '{"name":"kyma-project.io","labels":[{"name":"kyma-project.io/built-by","value":"modulectl","version":"v1"}]}'
+      repositoryContexts:
+      - baseUrl: http://op-kcp-registry.localhost:8888/unsigned
+        componentNameMapping: urlPath
+        type: ociRegistry
+      resources:
+      - access:
+          imageReference: europe-docker.pkg.dev/kyma-project/prod/template-operator:1.0.2
+          type: ociArtifact
+        labels:
+        - name: scan.security.kyma-project.io/type
+          value: third-party-image
+          version: v1
+        name: template-operator
+        relation: external
+        type: ociArtifact
+        version: 1.0.2
+      - access:
+          localReference: sha256:4d17ea40fc5f5b1451cb2f23491510df10f79e629fcf5617fed0234dc766de59
+          mediaType: application/x-yaml
+          referenceName: metadata
+          type: localBlob
+        digest:
+          hashAlgorithm: SHA-256
+          normalisationAlgorithm: genericBlobDigest/v1
+          value: 4d17ea40fc5f5b1451cb2f23491510df10f79e629fcf5617fed0234dc766de59
+        name: metadata
+        relation: local
+        type: plainText
+        version: 1.0.2
+      - access:
+          localReference: sha256:9dc9ee3a3adfa21d5971044f7acc6700c058e26d8e6c5d81e87e47f2a1d17b24
+          mediaType: application/x-tar
+          referenceName: raw-manifest
+          type: localBlob
+        digest:
+          hashAlgorithm: SHA-256
+          normalisationAlgorithm: genericBlobDigest/v1
+          value: 9dc9ee3a3adfa21d5971044f7acc6700c058e26d8e6c5d81e87e47f2a1d17b24
+        name: raw-manifest
+        relation: local
+        type: directoryTree
+        version: 1.0.2
+      - access:
+          localReference: sha256:abfaffddba9c4121d17e77f972c4b4f6d363cb7199394ba3df3e34915bedd8ac
+          mediaType: application/x-tar
+          referenceName: default-cr
+          type: localBlob
+        digest:
+          hashAlgorithm: SHA-256
+          normalisationAlgorithm: genericBlobDigest/v1
+          value: abfaffddba9c4121d17e77f972c4b4f6d363cb7199394ba3df3e34915bedd8ac
+        name: default-cr
+        relation: local
+        type: directoryTree
+        version: 1.0.2
+      sources:
+      - access:
+          commit: 5ee2e6397de7245e031b81dc26a50ef9006f0483
+          repoUrl: https://github.com/kyma-project/template-operator
+          type: gitHub
+        labels:
+        - name: git.kyma-project.io/ref
+          value: HEAD
+          version: v1
+        - name: scan.security.kyma-project.io/rc-tag
+          value: ""
+          version: v1
+        - name: scan.security.kyma-project.io/language
+          value: golang-mod
+          version: v1
+        - name: scan.security.kyma-project.io/dev-branch
+          value: ""
+          version: v1
+        - name: scan.security.kyma-project.io/subprojects
+          value: ""
+          version: v1
+        - name: scan.security.kyma-project.io/exclude
+          value: '**/test/**,**/*_test.go'
+          version: v1
+        name: module-sources
+        type: Github
+        version: 1.0.2
+      version: 1.0.2
    ```
    
-The CLI created various layers that are referenced in the `blobs` directory. For more information on the layer structure, check the module creation with `kyma alpha mod create --help`.
+The CLI created various layers that are referenced in the `blobs` directory. For more information on the layer structure, check the module creation with `modulectl create --help`.
 
 ## Monitoring Dashboard
 
