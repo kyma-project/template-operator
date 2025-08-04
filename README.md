@@ -432,18 +432,6 @@ This feature is supported by the [kubebuilder Grafana plugin](https://book.kubeb
 ## Using Your Module in the Lifecycle Manager Ecosystem 
 <!-- Move to a diffrent location, for example Lifecycle Managwer and rewrite to use modulectl instead of Kyma CLI-->
 
-### Deploying Kyma Infrastructure Operators with `kyma alpha deploy`
-
-> **WARNING:** This step requires the working OCI registry and cluster. See [Prerequisites](#prerequisites).
-
-Now that everything is prepared in a cluster of your choice, you can reference the module within any Kyma CR in your Control Plane cluster.
-
-Deploy the [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager/tree/main) to the Control Plane cluster with:
-
-   ```shell
-   kyma alpha deploy
-   ```
-
 ### Deploying ModuleTemplate into the Control Plane
 
 Run the command for creating ModuleTemplate in your cluster.
