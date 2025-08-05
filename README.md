@@ -24,11 +24,8 @@ Additionally, it hides Kubernetes boilerplate code to develop fast and efficient
     - [Prepare and Build Module Operator Image](#prepare-and-build-module-operator-image)
     - [Build and Push Your Module to the Registry](#build-and-push-your-module-to-the-registry)
   - [Monitoring Dashboard](#monitoring-dashboard)
-  - [Using Your Module in the Lifecycle Manager Ecosystem](#using-your-module-in-the-lifecycle-manager-ecosystem)
-    - [Deploying Kyma Infrastructure Operators with `kyma alpha deploy`](#deploying-kyma-infrastructure-operators-with-kyma-alpha-deploy)
-    - [Deploying ModuleTemplate into the Control Plane](#deploying-moduletemplate-into-the-control-plane)
-    - [Debugging the Operator Ecosystem](#debugging-the-operator-ecosystem)
-    - [Registering your Module Within the Control Plane](#registering-your-module-within-the-control-plane)
+  - [Debugging the Operator Ecosystem](#debugging-the-operator-ecosystem)
+  - [Registering your Module Within the Control Plane](#registering-your-module-within-the-control-plane)
   - [Contributing](#contributing)
   - [Code of Conduct](#code-of-conduct)
   - [Licensing](#licensing)
@@ -90,9 +87,9 @@ Use one of the following options to install kubebuilder:
     ```
 <!-- tabs:end -->
 
-* [Kyma CLI](https://storage.googleapis.com/kyma-cli-stable/kyma-darwin) <!--modulectl (link)-->
+* [modulectl](https://github.com/kyma-project/modulectl/releases)
 * An OCI registry to host OCI image
-  * Follow our [Provision cluster and OCI registry](https://github.com/kyma-project/lifecycle-manager/blob/main/docs/developer-tutorials/provision-cluster-and-registry.md) guide to create a local registry provided by k3d or use the [Google Container Registry (GCR)](https://github.com/kyma-project/lifecycle-manager/blob/main/docs/developer-tutorials/prepare-gcr-registry.md) guide for a remote registry.
+  * You can use a local registry provided by k3d or use the Google Container Registry (GCR).
 
 ### Generate the kubebuilder Operator
 
@@ -195,7 +192,7 @@ You can leverage parts of this logic to implement your own controller logic. Che
 **WARNING:** This installs a CRD on your cluster, so create your cluster before running the `install` command. See [Prerequisites](#prerequisites) for details on the cluster setup.
 3. _Local setup_: install your module CR on a cluster and execute `make run` to start your operator locally.
 
-> **WARNING:** Note that while `make run` fully runs your controller against the cluster, it is not feasible to compare it to a productive operator. This is mainly because it runs with a client configured with privileges derived from your `KUBECONFIG` environment variable. For in-cluster configuration, see [Guide on RBAC Management](#rbac).
+> **WARNING:** Note that while `make run` fully runs your controller against the cluster, it is not feasible to compare it to a productive operator. This is mainly because it runs with a client configured with privileges derived from your `KUBECONFIG` environment variable. For in-cluster configuration, see [Guide on RBAC Management](#role-based-access-control-rbac).
 
 ### Role-Based Access Control (RBAC)
 
@@ -248,8 +245,7 @@ you can run the following command:
 
 This builds the controller image and then pushes it as the image defined in `IMG` based on the kubebuilder targets.
 
-### Build and Push Your Module to the Registry 
-<!-- rewrite using modulectl instead of Kyma CLI-->
+### Build and Push Your Module to the Registry
 
 > **WARNING:** This step requires the working OCI Registry, cluster, and Kyma CLI. See [Prerequisites](#prerequisites).
 
@@ -264,7 +260,7 @@ You can use this file as a manifest for the module configuration in the next ste
 Furthermore, make sure the settings from [Prepare and Build Module Operator Image](#prepare-and-build-module-operator-image) for single-cluster mode, and the following module settings are applied:
 * is hosted at `op-kcp-registry.localhost:8888/unsigned`
 * for a k3d registry, the `insecure` flag (`http` instead of `https` for registry communication) is enabled
-* Kyma CLI in `$PATH` under `kyma` is used
+* modulectl in `$PATH` under `moduletcl` is used
 * the default sample under `config/samples/operator.kyma-project.io_v1alpha1_sample.yaml` has been adjusted to be a valid CR
 
    > **WARNING:** The settings above reflect your default configuration for a module. To change them, adjust them manually to a different configuration. 
@@ -284,84 +280,138 @@ Furthermore, make sure the settings from [Prepare and Build Module Operator Imag
    The following fields are available for the configuration of the module:
    - `name`: (Required) The name of the module.
    - `version`: (Required) The version of the module.
-   - `channel`: (Required) The channel that must be used in ModuleTemplate. Must be a valid Kyma state.
-   - `manifest`: (Required) The relative path to the manifest file (generated in the first step).
-   - `defaultCR`: (Optional) The relative path to a YAML file containing the default CR for the module.
-   - `resourceName`: (Optional) The name for ModuleTemplate that is created.
-   - `namespace`: (Optional) The namespace where ModuleTemplate is deployed.
-   - `security`: (Optional) The name of the security scanners configuration file.
-   - `internal`: (Optional) Determines whether ModuleTemplate must have the internal flag or not. The type is bool.
-   - `beta`: (Optional) Determines whether ModuleTemplate must have the beta flag or not. The type is bool.
-   - `labels`: (Optional) Additional labels for ModuleTemplate.
-   - `annotations`: (Optional) Additional annotations for ModuleTemplate.
-   - `customStateCheck`: (Optional) [DEPRECATED] Specifies custom state checks for the module.
+   - `manifest`: (Required) Reference to the manifest, must be a URL or a local file path.
+   - `repository`: (Required) Reference to the repository, must be a URL.
+   - `documentation`: (Required) Reference to the documentation, must be a URL.
+   - `icons`: (Required) Icons used for UI.
+   - `defaultCR`: (Optional) Reference to a YAML file containing the default CR for the module, must be a URL or a local file path.
+   - `mandatory`: (Optional) Default=false, indicates whether the module is mandatory to be installed on all clusters.
+   - `security`: (Optional) Reference to a YAML file containing the security scanners config, must be a local file path.
+   - `labels`: (Optional) Additional labels for the generated ModuleTemplate CR.
+   - `annotations`: (Optional) Additional annotations for the generated ModuleTemplate CR.
+   - `manager`: (Optional) Module resource that indicates the installation readiness of the module, typically the manager deployment of the module.
+   - `associatedResources`: (Optional) Resources that should be cleaned up with the module deletion.
+   - `resources`: (Optional) Additional resources of the module that may be fetched.
+   - `requiresDowntime`: (Optional) Default=false, indicates whether the module requires downtime to support maintenance windows during module upgrades.
+   - `namespace`: (Optional) Default=kcp-system, the namespace where the ModuleTemplate will be deployed.
+   - `internal`: (Optional) Default=false, indicates whether the module is internal.
+   - `beta`: (Optional) Default=false, indicates whether the module is beta.
 
-   > **CAUTION:** This field was deprecated at the end of July 2024 and will be deleted in the next [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager/tree/main/) API versions. 
+   >      **CAUTION:** This field was deprecated at the end of July 2024 and will be deleted in the next [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager/tree/main/) API versions. 
 
-   An example configuration:
+      An example configuration:
 
-   ```yaml
-   name: kyma-project.io/module/template-operator
-   version: v1.0.0
-   channel: regular
-   manifest: template-operator.yaml
-   ```
+      ```yaml
+      name: kyma-project.io/module/template-operator
+      version: v1.0.0
+      channel: regular
+      manifest: template-operator.yaml
+      ```
 3. Run the following command to create the module configured in `module-config.yaml` and push your module operator image to the specified registry:
 
    ```sh
-   kyma alpha create module --insecure --registry op-kcp-registry.localhost:8888/unsigned --module-config-file module-config.yaml 
+   modulectl create --insecure --registry op-kcp-registry.localhost:8888/unsigned --module-config-file module-config.yaml 
    ```
    
 > **WARNING:** For external registries (for example, Google Container/Artifact Registry) never use `insecure`. Instead, specify credentials. You can find more details in the CLI help documentation.
    
-1. Verify that the module creation succeeded and observe the generated `template.yaml` file. It will contain the ModuleTemplate CR and descriptor of the component under `spec.descriptor.component`.   
+4. Verify that the module creation succeeded and observe the generated `template.yaml` file. It will contain the ModuleTemplate CR and descriptor of the component under `spec.descriptor.component`.   
 
    ```yaml
-   component:
-     componentReferences: []
-     labels:
-     - name: security.kyma-project.io/scan
-       value: enabled
-       version: v1
-     name: kyma-project.io/module/template-operator
-     provider: internal
-     repositoryContexts:
-     - baseUrl: http://op-kcp-registry.localhost:8888/unsigned
-       componentNameMapping: urlPath
-       type: ociRegistry
-     resources:
-     - access:
-         digest: sha256:d008309948bd08312016731a9c528438e904a71c05a110743f5a151f0c3c4a9e
-         type: localOciBlob
-       name: raw-manifest
-       relation: local
-       type: yaml
-       version: v1.0.0
-     sources:
-     - access:
-         commit: 4f2ae6474ea7ababf9be246abe74b40f1baf1121
-         repoUrl: https://github.com/LeelaChacha/kyma-cli.git
-         type: gitHub
-       labels:
-       - name: git.kyma-project.io/ref
-         value: refs/heads/feature/#90-update-build-instructions
-         version: v1
-       - name: scan.security.kyma-project.io/language
-         value: golang-mod
-         version: v1
-       - name: scan.security.kyma-project.io/subprojects
-         value: "false"
-         version: v1
-       - name: scan.security.kyma-project.io/exclude
-         value: '**/test/**,**/*_test.go'
-         version: v1
-       name: module-sources
-       type: git
-       version: v1.0.0
-     version: v1.0.0
+    component:
+      componentReferences: []
+      labels:
+      - name: security.kyma-project.io/scan
+        value: enabled
+        version: v1
+      name: kyma-project.io/module/template-operator
+      provider: '{"name":"kyma-project.io","labels":[{"name":"kyma-project.io/built-by","value":"modulectl","version":"v1"}]}'
+      repositoryContexts:
+      - baseUrl: http://op-kcp-registry.localhost:8888/unsigned
+        componentNameMapping: urlPath
+        type: ociRegistry
+      resources:
+      - access:
+          imageReference: europe-docker.pkg.dev/kyma-project/prod/template-operator:1.0.2
+          type: ociArtifact
+        labels:
+        - name: scan.security.kyma-project.io/type
+          value: third-party-image
+          version: v1
+        name: template-operator
+        relation: external
+        type: ociArtifact
+        version: 1.0.2
+      - access:
+          localReference: sha256:4d17ea40fc5f5b1451cb2f23491510df10f79e629fcf5617fed0234dc766de59
+          mediaType: application/x-yaml
+          referenceName: metadata
+          type: localBlob
+        digest:
+          hashAlgorithm: SHA-256
+          normalisationAlgorithm: genericBlobDigest/v1
+          value: 4d17ea40fc5f5b1451cb2f23491510df10f79e629fcf5617fed0234dc766de59
+        name: metadata
+        relation: local
+        type: plainText
+        version: 1.0.2
+      - access:
+          localReference: sha256:9dc9ee3a3adfa21d5971044f7acc6700c058e26d8e6c5d81e87e47f2a1d17b24
+          mediaType: application/x-tar
+          referenceName: raw-manifest
+          type: localBlob
+        digest:
+          hashAlgorithm: SHA-256
+          normalisationAlgorithm: genericBlobDigest/v1
+          value: 9dc9ee3a3adfa21d5971044f7acc6700c058e26d8e6c5d81e87e47f2a1d17b24
+        name: raw-manifest
+        relation: local
+        type: directoryTree
+        version: 1.0.2
+      - access:
+          localReference: sha256:abfaffddba9c4121d17e77f972c4b4f6d363cb7199394ba3df3e34915bedd8ac
+          mediaType: application/x-tar
+          referenceName: default-cr
+          type: localBlob
+        digest:
+          hashAlgorithm: SHA-256
+          normalisationAlgorithm: genericBlobDigest/v1
+          value: abfaffddba9c4121d17e77f972c4b4f6d363cb7199394ba3df3e34915bedd8ac
+        name: default-cr
+        relation: local
+        type: directoryTree
+        version: 1.0.2
+      sources:
+      - access:
+          commit: 5ee2e6397de7245e031b81dc26a50ef9006f0483
+          repoUrl: https://github.com/kyma-project/template-operator
+          type: gitHub
+        labels:
+        - name: git.kyma-project.io/ref
+          value: HEAD
+          version: v1
+        - name: scan.security.kyma-project.io/rc-tag
+          value: ""
+          version: v1
+        - name: scan.security.kyma-project.io/language
+          value: golang-mod
+          version: v1
+        - name: scan.security.kyma-project.io/dev-branch
+          value: ""
+          version: v1
+        - name: scan.security.kyma-project.io/subprojects
+          value: ""
+          version: v1
+        - name: scan.security.kyma-project.io/exclude
+          value: '**/test/**,**/*_test.go'
+          version: v1
+        name: module-sources
+        type: Github
+        version: 1.0.2
+      version: 1.0.2
    ```
    
-The CLI created various layers that are referenced in the `blobs` directory. For more information on the layer structure, check the module creation with `kyma alpha mod create --help`.
+The CLI created various layers that are referenced in the `blobs` directory. For more information on the layer structure, check the module creation with `modulectl create --help`.
 
 ## Monitoring Dashboard
 
@@ -374,53 +424,9 @@ kubebuilder edit --plugins grafana.kubebuilder.io/v1-alpha
 ```
 
 To import Grafana dashboard, read the [official Grafana guide](https://grafana.com/docs/grafana/latest/dashboards/export-import/#import-dashboard).
-This feature is supported by the [kubebuilder Grafana plugin](https://book.kubebuilder.io/plugins/grafana-v1-alpha.html).
+This feature is supported by the [kubebuilder Grafana plugin](https://book.kubebuilder.io/plugins/available/grafana-v1-alpha).
 
-## Using Your Module in the Lifecycle Manager Ecosystem 
-<!-- Move to a diffrent location, for example Lifecycle Managwer and rewrite to use modulectl instead of Kyma CLI-->
-
-### Deploying Kyma Infrastructure Operators with `kyma alpha deploy`
-
-> **WARNING:** This step requires the working OCI registry and cluster. See [Prerequisites](#prerequisites).
-
-Now that everything is prepared in a cluster of your choice, you can reference the module within any Kyma CR in your Control Plane cluster.
-
-Deploy the [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager/tree/main) to the Control Plane cluster with:
-
-   ```shell
-   kyma alpha deploy
-   ```
-
-### Deploying ModuleTemplate into the Control Plane
-
-Run the command for creating ModuleTemplate in your cluster.
-After this the module will be available for consumption based on the module name configured with the label `operator.kyma-project.io/module-name` in ModuleTemplate.
-
-> **WARNING:** Depending on your setup against either a k3d cluster or registry, you must run the script `/scripts/patch_local_template.sh` before pushing ModuleTemplate to have the proper registry setup.
-This is necessary for k3d clusters due to port-mapping issues in the cluster that the operators cannot reuse. Take a look at the [relevant issue for more details](https://github.com/kyma-project/module-manager/issues/136#issuecomment-1279542587).
-
-   ```sh
-   kubectl apply -f template.yaml
-   ```
-
-You can use the following command to enable the module you created:
-
-   ```shell
-   kyma alpha enable module <module-identifier> -c <channel>
-   ```
-
-This adds your module to `.spec.modules` with a name originally based on the `"operator.kyma-project.io/module-name": "sample"` label generated in `template.yaml`:
-
-   ```yaml
-   spec:
-     modules:
-     - name: sample
-   ```
-
-If required, you can adjust this Kyma CR based on your testing scenario. For example, if you are running a dual-cluster setup, you might want to enable the synchronization of the Kyma CR into the runtime cluster for a full E2E setup.
-When creating this Kyma CR in your Control Plane cluster, installation of the specified modules should start immediately.
-
-### Debugging the Operator Ecosystem
+## Debugging the Operator Ecosystem
 
 The operator ecosystem around Kyma is complex, and it might become troublesome to debug issues in case your module is not installed correctly.
 For this reason, here are some best practices on how to debug modules developed using this guide.
@@ -443,7 +449,7 @@ For cluster provisioning, make sure to follow the recommendations for clusters m
 
 Lastly, if you are still unsure, [open an issue](https://github.com/kyma-project/template-operator/issues/new/choose) with a description and steps to reproduce. We will be happy to help you with a solution.
 
-### Registering your Module Within the Control Plane
+## Registering your Module Within the Control Plane
 
 For global usage of your module, the generated `template.yaml` from [Build and Push your Module to the Registry](#build-and-push-your-module-to-the-registry) must be registered in our Control Plane.
 This relates to [Phase 2 of the module transition plane](https://github.com/kyma-project/community/blob/main/concepts/modularization/transition.md#phase-2---first-module-managed-by-kyma-operator-integrated-with-keb). Please be patient until we provide you with a stable guide on integrating your `template.yaml` properly with an automated test flow into the central Control Plane offering.
