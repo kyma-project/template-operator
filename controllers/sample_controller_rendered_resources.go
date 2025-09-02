@@ -345,11 +345,15 @@ func getResourcesFromLocalPath(dirPath string, logger logr.Logger) (*ManifestRes
 
 // ssaStatus patches status using SSA on the passed object.
 func (r *SampleReconciler) ssaStatus(ctx context.Context, obj client.Object) error {
-	obj.SetManagedFields(nil)
-	obj.SetResourceVersion("")
-	if err := r.Status().Patch(ctx, obj, client.Apply,
-		&client.SubResourcePatchOptions{PatchOptions: client.PatchOptions{FieldManager: fieldOwner}}); err != nil {
-		return fmt.Errorf("error while patching status: %w", err)
+	unstructuredStatus, err := toUnstructuredStatus(obj)
+	if err != nil {
+		return err
+	}
+
+	if err := r.Apply(ctx,
+		client.ApplyConfigurationFromUnstructured(unstructuredStatus),
+		client.FieldOwner(fieldOwner)); err != nil {
+		return fmt.Errorf("error while patching object status: %w", err)
 	}
 	return nil
 }
@@ -358,8 +362,45 @@ func (r *SampleReconciler) ssaStatus(ctx context.Context, obj client.Object) err
 func (r *SampleReconciler) ssa(ctx context.Context, obj client.Object) error {
 	obj.SetManagedFields(nil)
 	obj.SetResourceVersion("")
-	if err := r.Patch(ctx, obj, client.Apply, client.ForceOwnership, client.FieldOwner(fieldOwner)); err != nil {
+
+	unstructuredObj, err := toUnstructured(obj)
+	if err != nil {
+		return err
+	}
+
+	if err := r.Apply(ctx,
+		client.ApplyConfigurationFromUnstructured(unstructuredObj),
+		client.FieldOwner(fieldOwner)); err != nil {
 		return fmt.Errorf("error while patching object: %w", err)
 	}
 	return nil
+}
+
+// Convert client.Object to unstructured.Unstructured.
+func toUnstructured(obj client.Object) (*unstructured.Unstructured, error) {
+	objMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert object to unstructured: %w", err)
+	}
+
+	unstructuredObj := &unstructured.Unstructured{}
+	unstructuredObj.SetUnstructuredContent(objMap)
+
+	return unstructuredObj, nil
+}
+
+// Convert client.Object to unstructured.Unstructured containing only the status field.
+func toUnstructuredStatus(obj client.Object) (*unstructured.Unstructured, error) {
+	unstructuredObj, err := toUnstructured(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	unstructuredStatus := unstructured.Unstructured{}
+	unstructuredStatus.SetGroupVersionKind(obj.GetObjectKind().GroupVersionKind())
+	unstructuredStatus.SetName(obj.GetName())
+	unstructuredStatus.SetNamespace(obj.GetNamespace())
+	unstructuredStatus.Object["status"] = unstructuredObj.Object["status"]
+
+	return &unstructuredStatus, nil
 }
