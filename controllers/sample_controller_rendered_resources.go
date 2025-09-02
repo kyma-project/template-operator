@@ -345,15 +345,13 @@ func getResourcesFromLocalPath(dirPath string, logger logr.Logger) (*ManifestRes
 
 // ssaStatus patches status using SSA on the passed object.
 func (r *SampleReconciler) ssaStatus(ctx context.Context, obj client.Object) error {
-	unstructuredStatus, err := toUnstructuredStatus(obj)
-	if err != nil {
-		return err
-	}
+	obj.SetManagedFields(nil)
+	obj.SetResourceVersion("")
 
-	if err := r.Apply(ctx,
-		client.ApplyConfigurationFromUnstructured(unstructuredStatus),
-		client.FieldOwner(fieldOwner)); err != nil {
-		return fmt.Errorf("error while patching object status: %w", err)
+	//nolint:staticcheck // https://github.com/kyma-project/lifecycle-manager/issues/2706
+	if err := r.Status().Patch(ctx, obj, client.Apply,
+		&client.SubResourcePatchOptions{PatchOptions: client.PatchOptions{FieldManager: fieldOwner}}); err != nil {
+		return fmt.Errorf("error while patching status: %w", err)
 	}
 	return nil
 }
@@ -387,20 +385,4 @@ func toUnstructured(obj client.Object) (*unstructured.Unstructured, error) {
 	unstructuredObj.SetUnstructuredContent(objMap)
 
 	return unstructuredObj, nil
-}
-
-// Convert client.Object to unstructured.Unstructured containing only the status field.
-func toUnstructuredStatus(obj client.Object) (*unstructured.Unstructured, error) {
-	unstructuredObj, err := toUnstructured(obj)
-	if err != nil {
-		return nil, err
-	}
-
-	unstructuredStatus := unstructured.Unstructured{}
-	unstructuredStatus.SetGroupVersionKind(obj.GetObjectKind().GroupVersionKind())
-	unstructuredStatus.SetName(obj.GetName())
-	unstructuredStatus.SetNamespace(obj.GetNamespace())
-	unstructuredStatus.Object["status"] = unstructuredObj.Object["status"]
-
-	return &unstructuredStatus, nil
 }
