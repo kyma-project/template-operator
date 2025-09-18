@@ -44,10 +44,11 @@ import (
 // SampleReconciler reconciles a Sample object.
 type SampleReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
 	*rest.Config
-	// EventRecorder for creating k8s events
 	record.EventRecorder
+
+	Scheme *runtime.Scheme
+	// EventRecorder for creating k8s events
 	FinalState         v1alpha1.State
 	FinalDeletionState v1alpha1.State
 }
