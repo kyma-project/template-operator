@@ -10,6 +10,8 @@ linters:
     - paralleltest
     - sqlclosecheck
     - wsl
+    - wsl_v5 # too strict
+    - noinlineerr # we want to keep inlining
   settings:
     cyclop:
       max-complexity: 20

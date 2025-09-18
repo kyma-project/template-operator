@@ -1,7 +1,14 @@
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
-ENVTEST_K8S_VERSION = 1.24.1
+ENVTEST_K8S_VERSION = $(shell yq e '.envtest_k8s' ./versions.yaml)
+ENVTEST_VERSION = $(shell yq e '.envtest' ./versions.yaml)
+GOLANG_CI_LINT = $(LOCALBIN)/golangci-lint
+GOLANG_CI_LINT_VERSION ?= v$(shell yq e '.golangciLint' ./versions.yaml)
+KUSTOMIZE ?= $(LOCALBIN)/kustomize
+KUSTOMIZE_VERSION ?= v$(shell yq e '.kustomize' ./versions.yaml)
+CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
+CONTROLLER_TOOLS_VERSION ?= v$(shell yq e '.controllerTools' ./versions.yaml)
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -127,16 +134,12 @@ $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 
 ########## Kustomize ###########
-KUSTOMIZE ?= $(LOCALBIN)/kustomize
-KUSTOMIZE_VERSION ?= v5.3.0
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download & Build kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/kustomize/kustomize/v5@$(KUSTOMIZE_VERSION)
 
 ########## controller-gen ###########
-CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
-CONTROLLER_TOOLS_VERSION ?= v0.19.0
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download & Build controller-gen locally if necessary.
 $(CONTROLLER_GEN): $(LOCALBIN)
@@ -147,7 +150,7 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download & Build envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-$(ENVTEST_VERSION)
 
 ##@ Checks
 
@@ -160,11 +163,12 @@ fmt: ## Run go fmt against code.
 vet: ## Run go vet against code.
 	go vet ./...
 
-GOLANG_CI_LINT = $(LOCALBIN)/golangci-lint
-GOLANG_CI_LINT_VERSION ?= v2.1.6
+.PHONY: install-golangci-lint
+install-golangci-lint:
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(LOCALBIN) $(GOLANG_CI_LINT_VERSION)
+
 .PHONY: lint
-lint: ## Download & Build & Run golangci-lint against code.
-	GOBIN=$(LOCALBIN) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANG_CI_LINT_VERSION)
+lint: install-golangci-lint## Download & Build & Run golangci-lint against code.
 	$(LOCALBIN)/golangci-lint run --verbose -c .golangci.yaml
 	cd api && $(LOCALBIN)/golangci-lint run --verbose -c ../.golangci.yaml
 
