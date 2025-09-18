@@ -101,5 +101,6 @@ type Sample struct {
 type SampleList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Sample `json:"items"`
+
+	Items []Sample `json:"items"`
 }
