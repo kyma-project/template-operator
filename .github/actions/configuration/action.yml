@@ -18,7 +18,3 @@ runs:
         pwd
         cat versions.yaml
         echo "golangci_lint_version=$(yq e '.golangciLint' versions.yaml)" >> $GITHUB_OUTPUT
-    - name: Expose environment variables
-      shell: bash
-      run: |
-        echo "GOSUMDB=off" >> $GITHUB_ENV
