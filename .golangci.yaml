@@ -2,17 +2,28 @@ version: "2"
 linters:
   default: all
   disable:
-    - contextcheck
-    - depguard
-    - exhaustruct
-    - lll
-    - nlreturn
-    - paralleltest
-    - sqlclosecheck
-    - wsl
+    - contextcheck # too many false positives
+    - depguard # checks if package imports are whitelisted
+    - exhaustruct # too subjective and harms code readability
+    - nlreturn # too strict and mostly code is not more readable
+    - paralleltest # should be enabled consciously for long running tests
+    - lll # revive.line-length-limit serve same purpose
+    - sqlclosecheck # not needed for this project
+    - wsl # too strict and mostly code is not more readable
     - wsl_v5 # too strict
     - noinlineerr # we want to keep inlining
   settings:
+    recvcheck:
+      disable-builtin: true
+      # User-defined method exclusions.
+      # The format is `struct_name.method_name` (ex: `Foo.MethodName`).
+      # A wildcard `*` can use as a struct name (ex: `*.MethodName`).
+      # Default: []
+      exclusions:
+        - "ResourceList.append"
+        - "*.DeepCopyInto"
+        - "*.DeepCopy"
+        - "*.DeepCopyObject"
     cyclop:
       max-complexity: 20
     exhaustruct:
@@ -60,7 +71,8 @@ linters:
           arguments:
             - 120
           severity: warning
-          disabled: true
+          exclude:
+            - "**/api/**/*_types.go"
     staticcheck:
       dot-import-whitelist:
         - github.com/onsi/ginkgo/v2
@@ -89,10 +101,10 @@ linters:
         path: _test\.go
       - linters:
           - lll
-        source: '^// +kubebuilder: '
+        source: "^// +kubebuilder: "
       - linters:
           - lll
-        source: '^// http '
+        source: "^// http "
     paths:
       - zz_generated.deepcopy.go
       - third_party$
