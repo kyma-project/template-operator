@@ -7,7 +7,7 @@ replace github.com/kyma-project/template-operator/api => ./api
 require (
 	github.com/go-logr/logr v1.4.3
 	github.com/kyma-project/template-operator/api v0.0.0-20241025084859-e28811b16f6b
-	github.com/onsi/ginkgo/v2 v2.25.3
+	github.com/onsi/ginkgo/v2 v2.26.0
 	github.com/onsi/gomega v1.38.2
 	golang.org/x/time v0.13.0
 	k8s.io/api v0.34.1
@@ -56,6 +56,7 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	golang.org/x/mod v0.27.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.29.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
