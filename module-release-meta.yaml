@@ -6,6 +6,6 @@ metadata:
 spec:
   channels:
     - channel: regular
-      version: 1.0.3
+      version: 1.0.4
   moduleName: template-operator
   ocmComponentName: kyma-project.io/module/template-operator
