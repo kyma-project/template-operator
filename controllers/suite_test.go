@@ -104,7 +104,7 @@ var _ = BeforeSuite(func() {
 	reconciler = &controllers.SampleReconciler{
 		Client:             k8sManager.GetClient(),
 		Scheme:             scheme.Scheme,
-		EventRecorder:      k8sManager.GetEventRecorderFor("tests"),
+		EventRecorder:      k8sManager.GetEventRecorder("tests"),
 		FinalState:         operatorkymaprojectiov1alpha1.StateReady,
 		FinalDeletionState: operatorkymaprojectiov1alpha1.StateDeleting,
 	}

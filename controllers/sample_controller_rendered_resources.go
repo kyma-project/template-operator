@@ -30,7 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -45,7 +45,7 @@ import (
 type SampleReconciler struct {
 	client.Client
 	*rest.Config
-	record.EventRecorder
+	events.EventRecorder
 
 	Scheme *runtime.Scheme
 	// EventRecorder for creating k8s events
@@ -169,7 +169,7 @@ func (r *SampleReconciler) HandleProcessingState(ctx context.Context, objectInst
 			return nil
 		}
 
-		r.Event(objectInstance, "Warning", "ResourcesInstall", err.Error())
+		r.Eventf(objectInstance, nil, "Warning", "ResourcesInstall", "Processing", "%v", err)
 		return r.setStatusForObjectInstance(ctx, objectInstance, status.
 			WithState(v1alpha1.StateError).
 			WithInstallConditionStatus(metav1.ConditionFalse, objectInstance.GetGeneration()))
@@ -200,7 +200,7 @@ func (r *SampleReconciler) HandleErrorState(ctx context.Context, objectInstance 
 // HandleDeletingState processed the deletion on the reconciled resource.
 // Once the deletion if processed the relevant finalizers (if applied) are removed.
 func (r *SampleReconciler) HandleDeletingState(ctx context.Context, objectInstance *v1alpha1.Sample) error {
-	r.Event(objectInstance, "Normal", "Deleting", "resource deleting")
+	r.Eventf(objectInstance, nil, "Normal", "Deleting", "Deleting", "resource deleting")
 	logger := log.FromContext(ctx)
 
 	status := getStatusFromSample(objectInstance)
@@ -213,7 +213,7 @@ func (r *SampleReconciler) HandleDeletingState(ctx context.Context, objectInstan
 		}
 		return nil
 	}
-	r.Event(objectInstance, "Normal", "ResourcesDelete", "deleting resources")
+	r.Eventf(objectInstance, nil, "Normal", "ResourcesDelete", "Deleting", "deleting resources")
 
 	// the resources to be installed are unstructured,
 	// so please make sure the types are available on the target cluster
@@ -225,7 +225,7 @@ func (r *SampleReconciler) HandleDeletingState(ctx context.Context, objectInstan
 			}
 
 			logger.Error(err, "error during uninstallation of resources")
-			r.Event(objectInstance, "Warning", "ResourcesDelete", "deleting resources error")
+			r.Eventf(objectInstance, nil, "Warning", "ResourcesDelete", "Deleting", "deleting resources error")
 			return r.setStatusForObjectInstance(ctx, objectInstance, status.
 				WithState(v1alpha1.StateError).
 				WithInstallConditionStatus(metav1.ConditionFalse, objectInstance.GetGeneration()))
@@ -252,7 +252,7 @@ func (r *SampleReconciler) HandleReadyState(ctx context.Context, objectInstance 
 			return nil
 		}
 
-		r.Event(objectInstance, "Warning", "ResourcesInstall", err.Error())
+		r.Eventf(objectInstance, nil, "Warning", "ResourcesInstall", "Processing", "%v", err)
 		return r.setStatusForObjectInstance(ctx, objectInstance, status.
 			WithState(v1alpha1.StateError).
 			WithInstallConditionStatus(metav1.ConditionFalse, objectInstance.GetGeneration()))
@@ -266,12 +266,13 @@ func (r *SampleReconciler) setStatusForObjectInstance(ctx context.Context, objec
 	objectInstance.Status = *status
 
 	if err := r.ssaStatus(ctx, objectInstance); err != nil {
-		r.Event(objectInstance, "Warning", "ErrorUpdatingStatus",
-			fmt.Sprintf("updating state to %v", string(status.State)))
+		r.Eventf(objectInstance, nil, "Warning", "ErrorUpdatingStatus", "UpdatingStatus", "updating state to %v",
+			string(status.State))
 		return fmt.Errorf("error while updating status %s to: %w", status.State, err)
 	}
 
-	r.Event(objectInstance, "Normal", "StatusUpdated", fmt.Sprintf("updating state to %v", string(status.State)))
+	r.Eventf(objectInstance, nil, "Normal", "StatusUpdated", "UpdatingStatus", "updating state to %v",
+		string(status.State))
 	return nil
 }
 
@@ -284,7 +285,7 @@ func (r *SampleReconciler) processResources(ctx context.Context, objectInstance 
 		return fmt.Errorf("error locating manifest of resources: %w", err)
 	}
 
-	r.Event(objectInstance, "Normal", "ResourcesInstall", "installing resources")
+	r.Eventf(objectInstance, nil, "Normal", "ResourcesInstall", "Processing", "installing resources")
 
 	// the resources to be installed are unstructured,
 	// so please make sure the types are available on the target cluster
@@ -348,8 +349,13 @@ func getResourcesFromLocalPath(dirPath string, logger logr.Logger) (*ManifestRes
 func (r *SampleReconciler) ssaStatus(ctx context.Context, obj client.Object) error {
 	obj.SetManagedFields(nil)
 	obj.SetResourceVersion("")
-	if err := r.Status().Patch(ctx, obj, client.Apply,
-		&client.SubResourcePatchOptions{PatchOptions: client.PatchOptions{FieldManager: fieldOwner}}); err != nil {
+
+	applyConfig, err := getApplyConfigurationForObject(obj)
+	if err != nil {
+		return fmt.Errorf("error getting apply configuration for object: %w", err)
+	}
+
+	if err := r.SubResource("status").Apply(ctx, applyConfig, client.FieldOwner(fieldOwner)); err != nil {
 		return fmt.Errorf("error while patching status: %w", err)
 	}
 	return nil
@@ -359,8 +365,32 @@ func (r *SampleReconciler) ssaStatus(ctx context.Context, obj client.Object) err
 func (r *SampleReconciler) ssa(ctx context.Context, obj client.Object) error {
 	obj.SetManagedFields(nil)
 	obj.SetResourceVersion("")
-	if err := r.Patch(ctx, obj, client.Apply, client.ForceOwnership, client.FieldOwner(fieldOwner)); err != nil {
+
+	applyConfig, err := getApplyConfigurationForObject(obj)
+	if err != nil {
+		return fmt.Errorf("error getting apply configuration for object: %w", err)
+	}
+
+	if err := r.Apply(ctx, applyConfig, client.ForceOwnership, client.FieldOwner(fieldOwner)); err != nil {
 		return fmt.Errorf("error while patching object: %w", err)
 	}
 	return nil
+}
+
+// getApplyConfigurationForObject adapts a strongly-typed Kubernetes object to the
+// runtime.ApplyConfiguration interface required by controller-runtime's client.Apply().
+//
+// Reason: Standard CRD Go structs do not implement the ApplyConfiguration interface by default.
+// Instead of generating complex, type-safe ApplyConfiguration structs (as client-go does),
+// this helper converts the object to Unstructured using reflection. This acts as a generic
+// adapter, allowing us to use Server-Side Apply (SSA) with existing types immediately.
+//
+//nolint:ireturn // returning and unexported type that implements the interface
+func getApplyConfigurationForObject(obj client.Object) (runtime.ApplyConfiguration, error) {
+	unstructuredObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return nil, fmt.Errorf("error converting object to unstructured: %w", err)
+	}
+	applyConfig := client.ApplyConfigurationFromUnstructured(&unstructured.Unstructured{Object: unstructuredObj})
+	return applyConfig, nil
 }
