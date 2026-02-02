@@ -384,7 +384,8 @@ func (r *SampleReconciler) ssa(ctx context.Context, obj client.Object) error {
 // Instead of generating complex, type-safe ApplyConfiguration structs (as client-go does),
 // this helper converts the object to Unstructured using reflection. This acts as a generic
 // adapter, allowing us to use Server-Side Apply (SSA) with existing types immediately.
-// nolint:ireturn // returning and unexported type that implements the interface
+//
+//nolint:ireturn // returning and unexported type that implements the interface
 func getApplyConfigurationForObject(obj client.Object) (runtime.ApplyConfiguration, error) {
 	unstructuredObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 	if err != nil {
