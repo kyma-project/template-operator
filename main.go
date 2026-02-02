@@ -120,7 +120,7 @@ func main() {
 	if err = (&controllers.SampleReconciler{
 		Client:             mgr.GetClient(),
 		Scheme:             mgr.GetScheme(),
-		EventRecorder:      mgr.GetEventRecorderFor(operatorName),
+		EventRecorder:      mgr.GetEventRecorder(operatorName),
 		FinalState:         v1alpha1.State(flagVar.finalState),
 		FinalDeletionState: v1alpha1.State(flagVar.finalDeletionState),
 	}).SetupWithManager(mgr, rateLimiter); err != nil {
