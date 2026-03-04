@@ -157,8 +157,8 @@ jobs:
       id-token: write
   publish-release:
     name: Publish release
-    needs: builds
-    if: always() && needs.builds.result == 'success'
+    needs: [builds, draft-release]
+    if: always() && needs.builds.result == 'success' && needs.draft-release.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
