@@ -110,6 +110,10 @@ jobs:
   draft-release:
     name: Draft release
     needs: [validate-release, await-bump-images-pr-merge]
+    if: |
+      always() && 
+      needs.validate-release.result == 'success' && 
+      (needs.await-bump-images-pr-merge.result == 'success' || needs.await-bump-images-pr-merge.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
