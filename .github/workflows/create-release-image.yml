@@ -148,6 +148,7 @@ jobs:
       release_id: ${{ steps.draft-release.outputs.release_id }}
   builds:
     needs: draft-release
+    if: always() && needs.draft-release.result == 'success'
     uses: ./.github/workflows/build-image.yml
     with:
       tag: "${{ github.event.inputs.name }}"
@@ -156,7 +157,8 @@ jobs:
       id-token: write
   publish-release:
     name: Publish release
-    needs: [validate-release, draft-release, builds]
+    needs: builds
+    if: always() && needs.builds.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
