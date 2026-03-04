@@ -7,7 +7,7 @@ set -E
 set -o pipefail
 
 RELEASE_VERSION=$1
-PREVIOUS_RELEASE=$2
+PREVIOUS_RELEASE=${2:-} # default to empty string if not provided so that "nounset" doesn't cause an error
 
 if [ "${PREVIOUS_RELEASE}"  == "" ]
 then
