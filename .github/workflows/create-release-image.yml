@@ -110,6 +110,10 @@ jobs:
   draft-release:
     name: Draft release
     needs: [validate-release, await-bump-images-pr-merge]
+    if: |
+      always() && 
+      needs.validate-release.result == 'success' && 
+      (needs.await-bump-images-pr-merge.result == 'success' || needs.await-bump-images-pr-merge.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -118,7 +122,6 @@ jobs:
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
-          ref: main  # Checkout main after version bump PR is merged
       - name: Create changelog
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -145,6 +148,8 @@ jobs:
       release_id: ${{ steps.draft-release.outputs.release_id }}
   builds:
     needs: draft-release
+    # the always() is needed so that the job is not skipped if previous jobs were skipped due to skip_sec_scanners_bump
+    if: always() && needs.draft-release.result == 'success'
     uses: ./.github/workflows/build-image.yml
     with:
       tag: "${{ github.event.inputs.name }}"
@@ -153,7 +158,10 @@ jobs:
       id-token: write
   publish-release:
     name: Publish release
-    needs: [validate-release, draft-release, builds]
+    needs: [builds, draft-release]
+    # the always() is needed so that the job is not skipped if previous jobs were skipped due to skip_sec_scanners_bump
+    # draft-release is needed as we use needs.draft-release.outputs.release_id below
+    if: always() && needs.builds.result == 'success' && needs.draft-release.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
