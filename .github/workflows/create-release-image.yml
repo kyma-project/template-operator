@@ -148,6 +148,7 @@ jobs:
       release_id: ${{ steps.draft-release.outputs.release_id }}
   builds:
     needs: draft-release
+    # the always() is needed so that the job is not skipped if previous jobs were skipped due to skip_sec_scanners_bump
     if: always() && needs.draft-release.result == 'success'
     uses: ./.github/workflows/build-image.yml
     with:
@@ -158,6 +159,8 @@ jobs:
   publish-release:
     name: Publish release
     needs: [builds, draft-release]
+    # the always() is needed so that the job is not skipped if previous jobs were skipped due to skip_sec_scanners_bump
+    # draft-release is needed as we use needs.draft-release.outputs.release_id below
     if: always() && needs.builds.result == 'success' && needs.draft-release.result == 'success'
     runs-on: ubuntu-latest
     permissions:
