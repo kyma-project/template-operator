@@ -46,6 +46,7 @@ const (
 	failureMaxDelayDefault      = 1000 * time.Second
 	operatorName                = "template-operator"
 	webhookPort                 = 9443
+	change                      = "change"
 )
 
 type FlagVar struct {
@@ -143,6 +144,7 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+
 }
 
 func defineFlagVar() *FlagVar {
