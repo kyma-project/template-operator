@@ -61,7 +61,7 @@ type ManifestResources struct {
 var (
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme.
 	//nolint:gochecknoglobals // used to register Sample CRD on startup
-	SchemeBuilder = &scheme.Builder{GroupVersion: v1alpha1.GroupVersion}
+	SchemeBuilder = &scheme.Builder{GroupVersion: v1alpha1.GroupVersion} //nolint:staticcheck // See #480
 
 	// AddToScheme adds the types in this group-version to the given scheme.
 	//nolint:gochecknoglobals // used to register Sample CRD on startup
