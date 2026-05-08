@@ -86,3 +86,12 @@ Two kustomize overlays — `config/overlays/deployment/` and `config/overlays/st
 ## Testing
 
 Tests live in `controllers/` alongside the controller (not in a separate `tests/` directory). The suite bootstrap in `suite_test.go` wires the full `SampleReconciler` against an envtest environment. Test fixtures (busybox manifests) are in `controllers/test/busybox/manifest/`.
+
+## Model usage
+
+Follow the Kyma team's Claude Code workflow:
+
+- **Planning complex tasks** — switch to Opus: `/model claude-opus-4-7`
+- **Implementation** — use the default Sonnet: `/model claude-sonnet-4-6`
+
+Use Opus when you need to understand an unfamiliar subsystem, design a non-trivial change, or reason about cross-cutting impacts. Switch back to Sonnet once the approach is clear and you are writing code.
