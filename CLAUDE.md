@@ -87,6 +87,10 @@ Two kustomize overlays — `config/overlays/deployment/` and `config/overlays/st
 
 Tests live in `controllers/` alongside the controller (not in a separate `tests/` directory). The suite bootstrap in `suite_test.go` wires the full `SampleReconciler` against an envtest environment. Test fixtures (busybox manifests) are in `controllers/test/busybox/manifest/`.
 
+## Code conventions
+
+Go nolint policy and SSA pattern rules load automatically when editing `.go` files — see [`.claude/rules/go-conventions.md`](.claude/rules/go-conventions.md).
+
 ## CVE triage
 
 Three scanners run against this repo (`sec-scanners-config.yaml`): **Checkmarx One** (SAST), **BDBA** (container CVE scan), **Mend** (Go module SCA for root and `api/` modules). When triaging a CVE finding, see [`.claude/cve-triage/context.md`](.claude/cve-triage/context.md).
