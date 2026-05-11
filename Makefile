@@ -222,3 +222,7 @@ $(KYMA):
 	test -f $@ || curl -s -Lo $(KYMA) https://storage.googleapis.com/kyma-cli-$(KYMA_STABILITY)/$(KYMA_FILE_NAME)
 	chmod 0100 $(KYMA)
 	${KYMA} version -c
+
+.PHONY: bump-go-version
+bump-go-version: ## Bump Go version. Usage: make bump-go-version GO_VERSION=1.26.3
+	curl -fsSL https://raw.githubusercontent.com/kyma-project/lifecycle-manager/refs/heads/main/scripts/bump-go-version.sh | bash -s $(GO_VERSION)
