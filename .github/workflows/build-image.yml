@@ -105,3 +105,18 @@ jobs:
       dockerfile: Dockerfile
       context: .
       tags: ${{ needs.get-custom-tags.outputs.tags }}
+
+  build-image-success:
+    needs: [build-image-trusted, build-image-restricted]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check build result
+        run: |
+          if [[ "${{ needs.build-image-trusted.result }}" == "success" || \
+                "${{ needs.build-image-restricted.result }}" == "success" ]]; then
+            echo "Image build succeeded."
+          else
+            echo "Image build failed or was skipped for both paths."
+            exit 1
+          fi
