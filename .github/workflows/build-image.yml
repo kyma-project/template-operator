@@ -46,10 +46,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6.0.2
+        with:
+          ref: main
       - name: Check if author is trusted
         id: check
+        env:
+          AUTHOR: ${{ github.event.pull_request.user.login }}
         run: |
-          AUTHOR="${{ github.event.pull_request.user.login }}"
           if [[ -z "$AUTHOR" ]]; then
             # Non-PR events (push, workflow_call) are always trusted
             echo "environment=trusted" >> $GITHUB_OUTPUT
@@ -63,13 +66,27 @@ jobs:
             echo "environment=restricted" >> $GITHUB_OUTPUT
           fi
 
-  build-image-trusted:
+  gate-trusted:
     needs: [get-custom-tags, check-author]
     if: needs.check-author.outputs.environment == 'trusted'
+    runs-on: ubuntu-latest
+    environment: trusted
+    steps:
+      - run: true
+
+  gate-restricted:
+    needs: [get-custom-tags, check-author]
+    if: needs.check-author.outputs.environment == 'restricted'
+    runs-on: ubuntu-latest
+    environment: restricted
+    steps:
+      - run: true
+
+  build-image-trusted:
+    needs: [get-custom-tags, gate-trusted]
     permissions:
       id-token: write # This is required for requesting the JWT token
       contents: read # This is required for actions/checkout
-    environment: trusted
     uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main
     with:
       name: template-operator
@@ -78,12 +95,10 @@ jobs:
       tags: ${{ needs.get-custom-tags.outputs.tags }}
 
   build-image-restricted:
-    needs: [get-custom-tags, check-author]
-    if: needs.check-author.outputs.environment == 'restricted'
+    needs: [get-custom-tags, gate-restricted]
     permissions:
       id-token: write # This is required for requesting the JWT token
       contents: read # This is required for actions/checkout
-    environment: restricted
     uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main
     with:
       name: template-operator
