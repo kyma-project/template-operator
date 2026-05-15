@@ -40,6 +40,7 @@ jobs:
           echo "Using custom tags: '$tags'"
           echo "tags=$tags" >> $GITHUB_OUTPUT
   build-image:
+    environment: image-build
     needs: get-custom-tags
     uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main
     with:
