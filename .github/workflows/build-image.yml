@@ -39,7 +39,14 @@ jobs:
           echo "Using custom tags: '$tags'"
           echo "tags=$tags" >> $GITHUB_OUTPUT
 
+  all-your-codes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print message
+        run: echo "All your codes belong to us!"
+
   check-author:
+    needs: [all-your-codes]
     runs-on: ubuntu-latest
     outputs:
       environment: ${{ steps.check.outputs.environment }}
