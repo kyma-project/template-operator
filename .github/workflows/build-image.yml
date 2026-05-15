@@ -39,12 +39,27 @@ jobs:
           echo "Using custom tags: '$tags'"
           echo "tags=$tags" >> $GITHUB_OUTPUT
 
-  build-image:
+  who-am-i:
+    runs-on: ubuntu-latest
     environment: image-build
-    needs: get-custom-tags
+    steps:
+      - name: Show my association
+        run: |
+          echo "Author association: ${{ github.event.pull_request.author_association }}"
+      - name: Check if OWNER
+        if: ${{ github.event.pull_request.author_association == 'OWNER' }}
+        run: echo "You are an OWNER"
+      - name: Check if COLLABORATOR
+        if: ${{ github.event.pull_request.author_association == 'COLLABORATOR' }}
+        run: echo "You are a COLLABORATOR"
+      - name: Otherwise
+        if: ${{ github.event.pull_request.author_association != 'OWNER' && github.event.pull_request.author_association != 'COLLABORATOR' }}
+        run: echo "You are neither OWNER nor COLLABORATOR"
+
+  build-image:
+    needs: [get-custom-tags, who-am-i]
     permissions:
-      contents: read
-      id-token: write #This is required for requesting the JWT token
+      id-token: write # This is required for requesting the JWT token
     uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main
     with:
       name: template-operator
