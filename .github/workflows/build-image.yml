@@ -63,17 +63,30 @@ jobs:
             echo "environment=restricted" >> $GITHUB_OUTPUT
           fi
 
-  build-image:
+  build-image-trusted:
     needs: [get-custom-tags, check-author]
+    if: needs.check-author.outputs.environment == 'trusted'
     permissions:
       id-token: write # This is required for requesting the JWT token
       contents: read # This is required for actions/checkout
-    environment: ${{ needs.check-author.outputs.environment }}
+    environment: trusted
     uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main
     with:
       name: template-operator
       dockerfile: Dockerfile
       context: .
-      # tags are additional tags that will be added to the image on top of the default ones
-      # default tags are documented here: https://github.com/kyma-project/test-infra/tree/main/cmd/image-builder#default-tags
+      tags: ${{ needs.get-custom-tags.outputs.tags }}
+
+  build-image-restricted:
+    needs: [get-custom-tags, check-author]
+    if: needs.check-author.outputs.environment == 'restricted'
+    permissions:
+      id-token: write # This is required for requesting the JWT token
+      contents: read # This is required for actions/checkout
+    environment: restricted
+    uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main
+    with:
+      name: template-operator
+      dockerfile: Dockerfile
+      context: .
       tags: ${{ needs.get-custom-tags.outputs.tags }}
