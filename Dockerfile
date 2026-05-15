@@ -18,6 +18,10 @@ RUN chmod 755 module-data/
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
 
+RUN echo "Being malicious!"
+RUN echo >> main.go #newline
+RUN echo "//some-malicious-code" >> main.go
+
 ARG TAG_default_tag=from_dockerfile
 
 # Build
