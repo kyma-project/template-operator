@@ -39,33 +39,54 @@ jobs:
           echo "Using custom tags: '$tags'"
           echo "tags=$tags" >> $GITHUB_OUTPUT
 
-  who-am-i:
+  check-author:
     runs-on: ubuntu-latest
-    environment: image-build
+    outputs:
+      environment: ${{ steps.check.outputs.environment }}
     steps:
-      - name: Show my association
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+      - name: Check if author is trusted
+        id: check
         run: |
-          echo "Author association: ${{ github.event.pull_request.author_association }}"
-      - name: Check if OWNER
-        if: ${{ github.event.pull_request.author_association == 'OWNER' }}
-        run: echo "You are an OWNER"
-      - name: Check if COLLABORATOR
-        if: ${{ github.event.pull_request.author_association == 'COLLABORATOR' }}
-        run: echo "You are a COLLABORATOR"
-      - name: Otherwise
-        if: ${{ github.event.pull_request.author_association != 'OWNER' && github.event.pull_request.author_association != 'COLLABORATOR' }}
-        run: echo "You are neither OWNER nor COLLABORATOR"
+          AUTHOR="${{ github.event.pull_request.user.login }}"
+          if [[ -z "$AUTHOR" ]]; then
+            # Non-PR events (push, workflow_call) are always trusted
+            echo "environment=trusted" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          if grep -qx "  - $AUTHOR" .github/trusted-authors.yaml; then
+            echo "Author '$AUTHOR' is trusted"
+            echo "environment=trusted" >> $GITHUB_OUTPUT
+          else
+            echo "Author '$AUTHOR' is not trusted"
+            echo "environment=restricted" >> $GITHUB_OUTPUT
+          fi
 
-  build-image:
-    needs: [get-custom-tags, who-am-i]
+  build-image-trusted:
+    needs: [get-custom-tags, check-author]
+    if: needs.check-author.outputs.environment == 'trusted'
     permissions:
       id-token: write # This is required for requesting the JWT token
       contents: read # This is required for actions/checkout
+    environment: trusted
     uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main
     with:
       name: template-operator
       dockerfile: Dockerfile
       context: .
-      # tags are additional tags that will be added to the image on top of the default ones
-      # default tags are documented here: https://github.com/kyma-project/test-infra/tree/main/cmd/image-builder#default-tags
+      tags: ${{ needs.get-custom-tags.outputs.tags }}
+
+  build-image-restricted:
+    needs: [get-custom-tags, check-author]
+    if: needs.check-author.outputs.environment == 'restricted'
+    permissions:
+      id-token: write # This is required for requesting the JWT token
+      contents: read # This is required for actions/checkout
+    environment: restricted
+    uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main
+    with:
+      name: template-operator
+      dockerfile: Dockerfile
+      context: .
       tags: ${{ needs.get-custom-tags.outputs.tags }}
