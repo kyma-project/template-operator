@@ -41,6 +41,7 @@ jobs:
 
   who-am-i:
     runs-on: ubuntu-latest
+    environment: image-build
     steps:
       - name: Show my association
         run: |
@@ -57,7 +58,6 @@ jobs:
 
   build-image:
     needs: [get-custom-tags, who-am-i]
-    environment: image-build
     permissions:
       id-token: write # This is required for requesting the JWT token
     uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main
