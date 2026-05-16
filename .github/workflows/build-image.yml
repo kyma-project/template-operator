@@ -39,6 +39,7 @@ jobs:
           echo "Using custom tags: '$tags'"
           echo "tags=$tags" >> $GITHUB_OUTPUT
 
+# Hope this works
   check-author:
     runs-on: ubuntu-latest
     outputs:
