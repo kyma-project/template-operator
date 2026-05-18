@@ -39,51 +39,17 @@ jobs:
           echo "Using custom tags: '$tags'"
           echo "tags=$tags" >> $GITHUB_OUTPUT
 
-  check-author:
+  restricted-gate:
+    needs: [get-custom-tags]
     runs-on: ubuntu-latest
-    outputs:
-      environment: ${{ steps.check.outputs.environment }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6.0.2
-        with:
-          ref: main
-      - name: Check if author is trusted
-        id: check
-        env:
-          AUTHOR: ${{ github.event.pull_request.user.login }}
-        run: |
-          if [[ -z "$AUTHOR" ]]; then
-            # Non-PR events (push, workflow_call) are always trusted
-            echo "environment=trusted" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          if grep -qx "  - $AUTHOR" .github/trusted-authors.yaml; then
-            echo "Author '$AUTHOR' is trusted"
-            echo "environment=trusted" >> $GITHUB_OUTPUT
-          else
-            echo "Author '$AUTHOR' is not trusted"
-            echo "environment=restricted" >> $GITHUB_OUTPUT
-          fi
-
-  gate-trusted:
-    needs: [get-custom-tags, check-author]
-    if: needs.check-author.outputs.environment == 'trusted'
-    runs-on: ubuntu-latest
-    environment: trusted
+    environment:
+      name: restricted
+      deployment: false
     steps:
       - run: true
 
-  gate-restricted:
-    needs: [get-custom-tags, check-author]
-    if: needs.check-author.outputs.environment == 'restricted'
-    runs-on: ubuntu-latest
-    environment: restricted
-    steps:
-      - run: true
-
-  build-image-trusted:
-    needs: [get-custom-tags, gate-trusted]
+  build-image:
+    needs: [get-custom-tags, restricted-gate]
     permissions:
       id-token: write # This is required for requesting the JWT token
       contents: read # This is required for actions/checkout
@@ -92,31 +58,6 @@ jobs:
       name: template-operator
       dockerfile: Dockerfile
       context: .
+      # tags are additional tags that will be added to the image on top of the default ones
+      # default tags are documented here: https://github.com/kyma-project/test-infra/tree/main/cmd/image-builder#default-tags
       tags: ${{ needs.get-custom-tags.outputs.tags }}
-
-  build-image-restricted:
-    needs: [get-custom-tags, gate-restricted]
-    permissions:
-      id-token: write # This is required for requesting the JWT token
-      contents: read # This is required for actions/checkout
-    uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main
-    with:
-      name: template-operator
-      dockerfile: Dockerfile
-      context: .
-      tags: ${{ needs.get-custom-tags.outputs.tags }}
-
-  build-image-success:
-    needs: [build-image-trusted, build-image-restricted]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check build result
-        run: |
-          if [[ "${{ needs.build-image-trusted.result }}" == "success" || \
-                "${{ needs.build-image-restricted.result }}" == "success" ]]; then
-            echo "Image build succeeded."
-          else
-            echo "Image build failed or was skipped for both paths."
-            exit 1
-          fi
