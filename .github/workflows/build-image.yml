@@ -44,7 +44,6 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: restricted
-      deployment: false
     steps:
       - run: echo "'build-image' job approval granted"
 
