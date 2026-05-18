@@ -39,17 +39,12 @@ jobs:
           echo "Using custom tags: '$tags'"
           echo "tags=$tags" >> $GITHUB_OUTPUT
 
-  restricted-gate:
-    needs: [get-custom-tags]
+  build-image:
+    needs: get-custom-tags
     runs-on: ubuntu-latest
     environment:
       name: restricted
       deployment: false
-    steps:
-      - run: true
-
-  build-image:
-    needs: [get-custom-tags, restricted-gate]
     permissions:
       id-token: write # This is required for requesting the JWT token
       contents: read # This is required for actions/checkout
