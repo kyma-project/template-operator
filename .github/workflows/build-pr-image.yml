@@ -1,19 +1,11 @@
-name: Build Image
+name: Build PR Image
 
 permissions:
   contents: read # This is required for actions/checkout
 
 on:
-  push:
-    branches:
-      - main
-  workflow_call:
-    inputs:
-      tag:
-        description: 'Additional tag for built image'
-        required: false
-        type: string
-        default: ""
+  pull_request_target:
+    types: [ opened, edited, synchronize, reopened, ready_for_review ]
 
 jobs:
   get-custom-tags:
@@ -27,16 +19,22 @@ jobs:
         id: get_custom_tags
         run: |
           tags=""
-          if [[ "${{ github.event_name }}" == "push" ]]; then
-            tags="latest"
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            tags="${{ inputs.tag }}"
+          if [[ "${{ github.event_name }}" == "pull_request_target" ]]; then
+            tags="${{ github.event.pull_request.head.sha }}"
           fi
           echo "Using custom tags: '$tags'"
           echo "tags=$tags" >> $GITHUB_OUTPUT
 
-  build-image:
-    needs: [get-custom-tags]
+  restricted-gate:
+    needs: get-custom-tags
+    runs-on: ubuntu-latest
+    environment:
+      name: restricted
+    steps:
+      - run: echo "'build-image' job approval granted"
+
+  build-pr-image:
+    needs: [get-custom-tags, restricted-gate]
     permissions:
       id-token: write # This is required for requesting the JWT token
       contents: read # This is required for actions/checkout
