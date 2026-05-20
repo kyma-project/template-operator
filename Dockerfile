@@ -17,6 +17,7 @@ RUN chmod 755 module-data/
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
+RUN echo "I am evil"
 
 ARG TAG_default_tag=from_dockerfile
 
