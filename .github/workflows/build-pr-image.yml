@@ -8,25 +8,7 @@ on:
     types: [ opened, edited, synchronize, reopened, ready_for_review ]
 
 jobs:
-  get-custom-tags:
-    runs-on: ubuntu-latest
-    outputs:
-      tags: ${{ steps.get_custom_tags.outputs.tags }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6.0.2
-      - name: Get tags
-        id: get_custom_tags
-        run: |
-          tags=""
-          if [[ "${{ github.event_name }}" == "pull_request_target" ]]; then
-            tags="${{ github.event.pull_request.head.sha }}"
-          fi
-          echo "Using custom tags: '$tags'"
-          echo "tags=$tags" >> $GITHUB_OUTPUT
-
   restricted-gate:
-    needs: get-custom-tags
     runs-on: ubuntu-latest
     environment:
       name: restricted
@@ -34,7 +16,7 @@ jobs:
       - run: echo "'build-image' job approval granted"
 
   build-pr-image:
-    needs: [get-custom-tags, restricted-gate]
+    needs: restricted-gate
     permissions:
       id-token: write # This is required for requesting the JWT token
       contents: read # This is required for actions/checkout
@@ -45,4 +27,4 @@ jobs:
       context: .
       # tags are additional tags that will be added to the image on top of the default ones
       # default tags are documented here: https://github.com/kyma-project/test-infra/tree/main/cmd/image-builder#default-tags
-      tags: ${{ needs.get-custom-tags.outputs.tags }}
+      tags: ${{ github.event.pull_request.head.sha }}
