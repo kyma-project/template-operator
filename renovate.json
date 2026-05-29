@@ -9,7 +9,11 @@
   "commitMessagePrefix": "chore(renovate):",
   "gomod": {
     "postUpdateOptions": ["gomodTidy"],
-    "enabled": true
+    "enabled": true,
+    "managerFilePatterns": [
+      "/go\\.mod$/",
+      "/api/go\\.mod$/"
+    ]
   },
   "kustomize": {
     "enabled": false
@@ -36,6 +40,10 @@
     {
       "matchDepNames": ["github.com/kyma-project/template-operator/api"],
       "enabled": false
+    },
+    {
+      "matchManagers": ["gomod"],
+      "addLabels": ["go"]
     },
     {
       "matchCategories": ["golang"],
@@ -71,6 +79,11 @@
       "matchManagers": ["gomod"],
       "groupName": "All Kubernetes packages",
       "matchPackageNames": ["k8s.io/**", "sigs.k8s.io/**"]
+    },
+    {
+      "matchManagers": ["gomod"],
+      "groupName": "All Istio packages",
+      "matchPackageNames": ["istio.io/**"]
     },
     {
       "matchManagers": ["gomod"],
