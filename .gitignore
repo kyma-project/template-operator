@@ -92,3 +92,7 @@ out.txt
 
 # rendered manifest
 **/manifest.yaml
+
+# claude
+.claude/settings.local.json
+**/CLAUDE.local.md
