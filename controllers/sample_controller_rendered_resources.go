@@ -68,8 +68,15 @@ var (
 )
 
 func addKnownTypes(s *runtime.Scheme) error {
-	s.AddKnownTypes(v1alpha1.GroupVersion, &v1alpha1.Sample{}, &v1alpha1.SampleList{})
+	metav1.AddToGroupVersion(s, v1alpha1.GroupVersion)
 	return nil
+}
+
+func init() { //nolint:gochecknoinits // used to register Sample CRD on startup
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(v1alpha1.GroupVersion, &v1alpha1.Sample{}, &v1alpha1.SampleList{})
+		return nil
+	})
 }
 
 // +kubebuilder:rbac:groups=operator.kyma-project.io,resources=samples,verbs=get;list;watch;create;update;patch;delete
