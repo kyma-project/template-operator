@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/scheme"
 
 	"github.com/kyma-project/template-operator/api/v1alpha1"
 )
@@ -61,15 +60,23 @@ type ManifestResources struct {
 var (
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme.
 	//nolint:gochecknoglobals // used to register Sample CRD on startup
-	SchemeBuilder = &scheme.Builder{GroupVersion: v1alpha1.GroupVersion} //nolint:staticcheck // See #480
+	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
 
 	// AddToScheme adds the types in this group-version to the given scheme.
 	//nolint:gochecknoglobals // used to register Sample CRD on startup
 	AddToScheme = SchemeBuilder.AddToScheme
 )
 
+func addKnownTypes(s *runtime.Scheme) error {
+	metav1.AddToGroupVersion(s, v1alpha1.GroupVersion)
+	return nil
+}
+
 func init() { //nolint:gochecknoinits // used to register Sample CRD on startup
-	SchemeBuilder.Register(&v1alpha1.Sample{}, &v1alpha1.SampleList{})
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(v1alpha1.GroupVersion, &v1alpha1.Sample{}, &v1alpha1.SampleList{})
+		return nil
+	})
 }
 
 // +kubebuilder:rbac:groups=operator.kyma-project.io,resources=samples,verbs=get;list;watch;create;update;patch;delete
