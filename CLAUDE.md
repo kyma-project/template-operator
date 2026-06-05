@@ -1,14 +1,12 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## What this repo is
-
 Template Operator is a **reference implementation and tutorial** for building Kyma module operators. It demonstrates the patterns, structure, and conventions that all Kyma modules must follow to integrate with [Lifecycle Manager](https://github.com/kyma-project/lifecycle-manager).
 
 It is a kubebuilder-based Kubernetes operator written in Go, deployed to SAP BTP, Kyma Runtime (SKR) clusters and managed through Lifecycle Manager via the `Manifest` CR. When implementing a new Kyma module, this repository is the starting point.
 
-## Two Go modules
+To build the operator binary, run `make build`.
+
+## template-operator consists of two Go modules
 
 | Directory | Module | Role |
 |---|---|---|
@@ -19,16 +17,16 @@ Run `go` and `make` commands from the repo root. The root `Makefile` handles bot
 
 **After any type change in `api/`:** always run `make generate && make manifests` and commit the updated `zz_generated.deepcopy.go` and `crd/*.yaml`.
 
-## Custom Resources
+## template-operator manages the following Custom Resources
 
 - **`Sample`** (`api/v1alpha1`) — the primary demo CR that the operator manages.
 - **`ThirdParty`** (`api/v1alpha1`) — demonstrates watching and reacting to an externally-owned resource.
 
 Both types follow the Kyma status pattern: `status.state` uses `Ready | Processing | Deleting | Error` communicated through `status.conditions`. Never write free-form strings as the primary state signal — use `status.state` + conditions.
 
-## Code conventions
+## template-operator uses the following code conventions
 
-Go conventions load automatically when editing `.go` files — see [`.claude/rules/go-conventions.md`](.claude/rules/go-conventions.md).
+Go nolint and import ordering rules load automatically when editing `.go` files — see [`.claude/rules/go-conventions.md`](.claude/rules/go-conventions.md).
 
 Key rules from `.golangci.yaml`:
 - **All linters enabled by default** — check `.golangci.yaml` before adding `//nolint`
