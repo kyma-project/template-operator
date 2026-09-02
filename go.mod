@@ -1,12 +1,12 @@
 module github.com/kyma-project/template-operator
 
-go 1.26.6
+go 1.27.0
 
 replace github.com/kyma-project/template-operator/api => ./api
 
 require (
 	github.com/go-logr/logr v1.4.4
-	github.com/kyma-project/template-operator/api v0.0.0-20241025084859-e28811b16f6b
+	github.com/kyma-project/template-operator/api v1.0.1-0.20260902064807-bfcb4305d491
 	github.com/onsi/ginkgo/v2 v2.32.1
 	github.com/onsi/gomega v1.43.0
 	golang.org/x/time v0.15.0

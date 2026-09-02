@@ -224,5 +224,5 @@ $(KYMA):
 	${KYMA} version -c
 
 .PHONY: bump-go-version
-bump-go-version: ## Bump Go version. Usage: make bump-go-version GO_VERSION=1.26.3
+bump-go-version: ## Bump Go version. Usage: make bump-go-version GO_VERSION=1.27.0
 	curl -fsSL https://raw.githubusercontent.com/kyma-project/lifecycle-manager/refs/heads/main/scripts/bump-go-version.sh | bash -s $(GO_VERSION)

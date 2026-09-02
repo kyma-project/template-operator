@@ -145,10 +145,13 @@ func (r *SampleReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	case "":
 		return ctrl.Result{}, r.HandleInitialState(ctx, &objectInstance)
 	case v1alpha1.StateProcessing:
+		//nolint:staticcheck // https://github.com/kyma-project/template-operator/issues/566
 		return ctrl.Result{Requeue: true}, r.HandleProcessingState(ctx, &objectInstance)
 	case v1alpha1.StateDeleting:
+		//nolint:staticcheck // https://github.com/kyma-project/template-operator/issues/566
 		return ctrl.Result{Requeue: true}, r.HandleDeletingState(ctx, &objectInstance)
 	case v1alpha1.StateError:
+		//nolint:staticcheck // https://github.com/kyma-project/template-operator/issues/566
 		return ctrl.Result{Requeue: true}, r.HandleErrorState(ctx, &objectInstance)
 	case v1alpha1.StateReady, v1alpha1.StateWarning:
 		return ctrl.Result{RequeueAfter: requeueInterval}, r.HandleReadyState(ctx, &objectInstance)
