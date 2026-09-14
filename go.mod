@@ -7,7 +7,7 @@ replace github.com/kyma-project/template-operator/api => ./api
 require (
 	github.com/go-logr/logr v1.4.4
 	github.com/kyma-project/template-operator/api v1.0.1-0.20260902064807-bfcb4305d491
-	github.com/onsi/ginkgo/v2 v2.32.1
+	github.com/onsi/ginkgo/v2 v2.32.2
 	github.com/onsi/gomega v1.43.0
 	golang.org/x/time v0.16.0
 	k8s.io/api v0.37.0
